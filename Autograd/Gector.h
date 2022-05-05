@@ -13,10 +13,9 @@ using std::unique_ptr;
 template <typename T>
 class NGector
 {
-protected:
+public:
 	vector<T> data;
 
-public:
 	NGector() = default;
 
 	NGector(vector<T>& data)
@@ -56,6 +55,11 @@ public:
 		return data[i];
 	}
 
+	void resize(size_t new_size)
+	{
+		data.resize(new_size);
+	}
+
 	auto size() const
 	{
 		return data.size();
@@ -86,9 +90,9 @@ template <typename T>
 class Gector : public NGector<T>
 {
 	vector<unique_ptr<GradFunc<T>>> depends_on {};
-	NGector<T> grad{};
 	
 public:
+	NGector<T> grad{};
 	bool requires_grad = true;
 
 	Gector() = default;
@@ -115,8 +119,17 @@ public:
 	{}
 
 	Gector(Gector<T>&& other)
-		: NGector<T>{ other.data }
+		: NGector<T>{ std::move(other.data) }
 		, requires_grad{ other.requires_grad }
+		, depends_on { std::move(other.depends_on) }
+	{}
+
+	Gector(const NGector<T>& other)
+		: NGector<T>{ other.data }
+	{}
+
+	Gector(NGector<T>&& other)
+		: NGector<T>{ std::move(other.data) }
 	{}
 
 	Gector& operator=(const Gector<T>& other)
@@ -129,31 +142,36 @@ public:
 	Gector& operator=(Gector<T>&& other)
 	{
 		this->data = std::move(other.data);
-		requires_grad = std::move(other.requires_grad);
+		requires_grad = other.requires_grad;
+		std::cout << "dep" << other.depends_on.size();
 		depends_on = std::move(other.depends_on);
 		return *this;
 	}
 
-	void add_dependency(std::unique_ptr<Dependency<T>>&& dep)
+	void add_dependency(GradFunc<T>* dep)
 	{
-		depends_on.push_back(dep);
+		depends_on.emplace_back(dep);
 	}
 
-	Gector<T> sum() const
+	Gector<T> sum()
 	{
 		return Gsum(*this);
 	}
 
-	Gector<T> backward(Gector<T>& in_grad)
+	void backward(const Gector<T>& in_grad = Gector<T>({T {}}))
 	{
 		assert(requires_grad);
+
+		if (!grad.size())
+			grad.resize(in_grad.size());
 
 		for (auto i = 0; i < in_grad.size(); ++i)
 			grad[i] += in_grad[i];
 
 		for (auto i = 0; i < depends_on.size(); ++i)
 		{
-			depends_on[i].grad_fn(grad);
+			auto backward_grad = (*depends_on[i])(grad);
+			depends_on[i]->gector.backward(backward_grad);
 		}
 	}
 };
@@ -166,6 +184,6 @@ std::ostream& operator <<(std::ostream& os, const Gector<T>& t)
 	{
 		os << t[i] << " ";
 	}
-	os << "]\n";
+	os << "\b]\n";
 	return os;
 }
