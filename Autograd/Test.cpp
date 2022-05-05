@@ -10,5 +10,7 @@ int main()
 {
 	Gector<double> g({ 5., 10., 3. });
 	std::cout << g.requires_grad << std::endl;
-	std::cout << g.sum();
+	auto f = g.sum();
+	f.backward();
+	std::cout << Gector<double>(g.grad);
 }
