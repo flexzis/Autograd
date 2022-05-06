@@ -59,6 +59,7 @@ public:
 	NGector<T> operator()(const NGector<T>& grad) const override
 	{
 		NGector<T> res = grad;
+		std::cout << "uncle = " << this->uncle;
 		for (auto i = 0; i < res.size(); ++i)
 			res[i] *= this->uncle[i];
 
@@ -66,5 +67,16 @@ public:
 	}
 };
 
-
-
+template<typename T>
+class GradNeg : public GradFunc<T>
+{
+public:
+	using GradFunc<T>::GradFunc;
+	NGector<T> operator()(const NGector<T>& grad) const override
+	{
+		auto res = grad;
+		for (auto i = 0; i < grad.size(); ++i)
+			res[i] = -res[i];
+		return res;
+	}
+};

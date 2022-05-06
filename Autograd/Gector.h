@@ -34,7 +34,7 @@ public:
 		: data{other.data}
 	{}
 
-	NGector(NGector<T>&& other)
+	NGector(NGector<T>&& other) noexcept
 		: data{ std::move(other.data) }
 	{}
 
@@ -155,7 +155,7 @@ public:
 		return *this;
 	}
 
-	Gector& operator=(Gector<T>&& other)
+	Gector& operator=(Gector<T>&& other) noexcept
 	{
 		this->data = std::move(other.data);
 		requires_grad = other.requires_grad;
@@ -201,16 +201,21 @@ public:
 	{
 		return Gmul(*this, other);
 	}
+	
+	Gector<T> operator-()
+	{
+		return Gneg(*this);
+	}
 
-	void backward(const NGector<T>& in_grad = {})
+	Gector<T> operator-(Gector<T>& other)
+	{
+		auto neg_other = -other;
+		return add(neg_other);
+	}
+
+	void backward(const NGector<T>& in_grad = {1.})
 	{
 		assert(requires_grad);
-		if (!in_grad.size())
-		{
-			// grad should be specified for non-zero tensors
-			assert(this->data.size()); 
-			//in_grad{ 1 };
-		}
 
 		if (!grad.size())
 			grad.resize(in_grad.size());
