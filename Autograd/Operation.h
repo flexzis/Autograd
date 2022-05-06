@@ -7,7 +7,6 @@ template <typename T>
 class Gector;
 
 template<class T>
-// sums elems in a Vector and returns it as a 1-elemented Vector
 Gector<T> Gsum(Gector<T>& v)
 {
 	auto res = Gector<T>({T {}}, v.requires_grad);
@@ -67,3 +66,17 @@ template<typename T>
 
 	return res;
 }
+
+ template<class T>
+ Gector<T> Gneg(Gector<T>& v)
+ {
+	 auto res = v;
+	 for (auto i = 0; i < res.size(); ++i)
+		 res[i] = -res[i];
+
+	 if (v.requires_grad)
+	 {
+		 res.add_dependency(new GradNeg<T>(v, v));
+	 }
+	 return res;
+ }

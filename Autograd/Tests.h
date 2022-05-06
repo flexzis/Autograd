@@ -4,6 +4,7 @@
 #include <vector>
 #include <cassert>
 #include "Gector.h"
+#include "Operation.h"
 
 using std::vector;
 using std::cin;
@@ -64,10 +65,32 @@ void test_mul()
 	assert(g2.get_grad() == Gector<double>({ -1., 2., 6. }));
 }
 
+void minimize()
+{
+	Gector<double> x{ 2., -2.};
+	
+	for (auto i = 0; i < 10; ++i)
+	{
+		std::cout << "x = " << x;
+		auto square = x.mul(x);
+		std::cout << "x ** 2 = " << square;
+		auto sum_of_squares = square.sum();
+		std::cout << "sum(x**2) = " << sum_of_squares;
+		sum_of_squares.backward();
+		std::cout << "grad(x**2) = " << square.get_grad();
+		auto alpha = Gector<double>{ 0.1, 0.1 };
+		auto delta_x = square.get_grad().mul(alpha);
+		auto y = x - delta_x;
+		x = y;
+		std::cout << i << x << "\n\n";
+	}
+}
+
 void test_all()
 {
 	test_sum();
 	test_add();
 	test_mul();
+	minimize();
 }
 
