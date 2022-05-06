@@ -18,16 +18,28 @@ public:
 
 	NGector() = default;
 
-	NGector(vector<T>& data)
-		: data{ data }
-	{}
-
 	NGector(const vector<T>& data)
 		: data{ data }
 	{}
 
 	NGector(vector<T>&& data)
 		: data{ data }
+	{}
+
+	NGector(std::initializer_list<T> list)
+		: data{ list }
+	{}
+
+	NGector(const NGector<T>& other)
+		: data{other.data}
+	{}
+
+	NGector(NGector<T>&& other)
+		: data{ std::move(other.data) }
+	{}
+
+	NGector(size_t size, const T& fill_val)
+		: data{ vector<T>(size, fill_val) }
 	{}
 
 	NGector& operator=(NGector& other)
@@ -90,9 +102,9 @@ template <typename T>
 class Gector : public NGector<T>
 {
 	vector<unique_ptr<GradFunc<T>>> depends_on {};
-	
-public:
 	NGector<T> grad{};
+public:
+	
 	bool requires_grad = true;
 
 	Gector() = default;
@@ -113,12 +125,16 @@ public:
 			, requires_grad{ requires_grad }
 	{}
 
+	Gector(std::initializer_list<T> list)
+		: NGector<T>{list}
+	{}
+
 	Gector(const Gector<T>& other)
 		: NGector<T>{ other.data }
 		, requires_grad{ other.requires_grad }
 	{}
 
-	Gector(Gector<T>&& other)
+	Gector(Gector<T>&& other) noexcept
 		: NGector<T>{ std::move(other.data) }
 		, requires_grad{ other.requires_grad }
 		, depends_on { std::move(other.depends_on) }
@@ -143,9 +159,21 @@ public:
 	{
 		this->data = std::move(other.data);
 		requires_grad = other.requires_grad;
-		std::cout << "dep" << other.depends_on.size();
 		depends_on = std::move(other.depends_on);
 		return *this;
+	}
+
+	bool operator==(const Gector<T>& other) const
+	{
+		auto size = this->size();
+		if (size != other.size())
+			return false;
+		for (auto i = 0; i < size; ++i)
+		{
+			if ((*this)[i] != other[i])
+				return false;
+		}
+		return true;
 	}
 
 	void add_dependency(GradFunc<T>* dep)
@@ -153,14 +181,36 @@ public:
 		depends_on.emplace_back(dep);
 	}
 
+	Gector<T> get_grad()
+	{
+		return grad;
+	}
+
 	Gector<T> sum()
 	{
 		return Gsum(*this);
 	}
 
-	void backward(const Gector<T>& in_grad = Gector<T>({T {}}))
+	Gector<T> add(Gector<T>& other)
+	{
+		// maybe implement for different sizes
+		return Gadd(*this, other);
+	}
+
+	Gector<T> mul(Gector<T>& other)
+	{
+		return Gmul(*this, other);
+	}
+
+	void backward(const NGector<T>& in_grad = {})
 	{
 		assert(requires_grad);
+		if (!in_grad.size())
+		{
+			// grad should be specified for non-zero tensors
+			assert(this->data.size()); 
+			//in_grad{ 1 };
+		}
 
 		if (!grad.size())
 			grad.resize(in_grad.size());
@@ -169,9 +219,9 @@ public:
 			grad[i] += in_grad[i];
 
 		for (auto i = 0; i < depends_on.size(); ++i)
-		{
+		{	
 			auto backward_grad = (*depends_on[i])(grad);
-			depends_on[i]->gector.backward(backward_grad);
+			depends_on[i]->parent.backward(backward_grad);
 		}
 	}
 };
