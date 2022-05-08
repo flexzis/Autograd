@@ -14,9 +14,8 @@ Gector<T> Gsum(Gector<T>& v)
 		res[0] += el;
 
 	if (v.requires_grad)
-	{
 		res.add_dependency(new GradSum<T>(v, v));
-	}
+
 	return res;
 }
 
@@ -32,13 +31,7 @@ Gector<T> Gadd(Gector<T>& v1, Gector<T>& v2)
 		res[i] = v1[i] + v2[i];
 
 	if (v1.requires_grad)
-	{
 		res.add_dependency(new GradAdd<T>(v1, v2));
-	}
-	if (v2.requires_grad)
-	{
-		res.add_dependency(new GradAdd<T>(v2, v1));
-	}
 
 	return res;
 }
@@ -56,13 +49,7 @@ template<typename T>
 		res[i] = v1[i] * v2[i];
 
 	if (v1.requires_grad)
-	{
 		res.add_dependency(new GradMul<T>(v1, v2));
-	}
-	if (v2.requires_grad)
-	{
-		res.add_dependency(new GradMul<T>(v2, v1));
-	}
 
 	return res;
 }
@@ -75,8 +62,7 @@ template<typename T>
 		 res[i] = -res[i];
 
 	 if (v.requires_grad)
-	 {
 		 res.add_dependency(new GradNeg<T>(v, v));
-	 }
+
 	 return res;
  }

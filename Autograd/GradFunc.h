@@ -68,24 +68,14 @@ public:
 
 	NGector<T> lhs_partial_deriv() const override
 	{
-		auto res = this->parent_rhs;
-		return res;
+		return this->parent_rhs;
 	}
 
 	NGector<T> rhs_partial_deriv() const override
 	{
-		auto res = this->parent_lhs;
-		return res;
+		return this->parent_lhs;
 	}
 
-	NGector<T> operator()(const NGector<T>& grad) const override
-	{
-		auto res = grad;
-		for (auto i = 0; i < res.size(); ++i)
-			res[i] *= this->uncle[i];
-
-		return res;
-	}
 };
 
 template<typename T>
@@ -93,11 +83,13 @@ class GradNeg : public GradFunc<T>
 {
 public:
 	using GradFunc<T>::GradFunc;
-	NGector<T> operator()(const NGector<T>& grad) const override
+	NGector<T> lhs_partial_deriv() const override
 	{
-		auto res = grad;
-		for (auto i = 0; i < grad.size(); ++i)
-			res[i] = -res[i];
-		return res;
+		return NGector<T>(this->parent_lhs.size(), -1);
+	}
+
+	NGector<T> rhs_partial_deriv() const override
+	{
+		return lhs_partial_deriv();
 	}
 };

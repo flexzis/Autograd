@@ -123,7 +123,7 @@ public:
 template <typename T>
 class Gector : public NGector<T>
 {
-	vector<unique_ptr<GradFunc<T>>> depends_on {};
+	unique_ptr<GradFunc<T>>	depends_on {};
 	NGector<T> grad{};
 public:
 	
@@ -160,7 +160,7 @@ public:
 		: NGector<T>{ std::move(other.data) }
 		, requires_grad{ other.requires_grad }
 		, depends_on { std::move(other.depends_on) }
-	{}
+	{}	
 
 	Gector(const NGector<T>& other)
 		: NGector<T>{ other.data }
@@ -200,7 +200,7 @@ public:
 
 	void add_dependency(GradFunc<T>* dep)
 	{
-		depends_on.emplace_back(dep);
+		depends_on.reset(dep);
 	}
 
 	Gector<T> get_grad()
@@ -245,23 +245,29 @@ public:
 		for (auto i = 0; i < in_grad.size(); ++i)
 			grad[i] += in_grad[i];
 
-		for (auto i = 0; i < depends_on.size(); ++i)
-		{
-			// 1 argument operator
-			if (depends_on[i]->parent_lhs == depends_on[i]->parent_rhs)
+		// 1 argument operator
+		if (depends_on)
+			if (depends_on->parent_lhs == depends_on->parent_rhs)
 			{
-				auto par_grad = grad * depends_on[i]->lhs_partial_deriv();
-				depends_on[i]->parent_lhs.backward(grad_par);
+				if (depends_on->parent_lhs.requires_grad)
+				{
+					auto par_grad = grad * depends_on->lhs_partial_deriv();
+					depends_on->parent_lhs.backward(par_grad);
+				}
 			}
 			else
 			{
-				auto par_lhs_grad = grad * depends_on[i]->lhs_partial_deriv();
-				depends_on[i]->parent_lhs.backward(grad_par);
-
-				auto par_rhs_grad = grad * depends_on[i]->rhs_partial_deriv();
-				depends_on[i]->parent_rhs.backward(par_rhs_grad);
+				if (depends_on->parent_lhs.requires_grad)
+				{
+					auto par_lhs_grad = grad * depends_on->lhs_partial_deriv();
+					depends_on->parent_lhs.backward(par_lhs_grad);
+				}
+				if (depends_on->parent_rhs.requires_grad)
+				{
+					auto par_rhs_grad = grad * depends_on->rhs_partial_deriv();
+					depends_on->parent_rhs.backward(par_rhs_grad);
+				}
 			}
-		}
 	}
 };
 

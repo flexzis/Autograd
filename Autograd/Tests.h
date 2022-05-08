@@ -49,6 +49,7 @@ void test_add()
 		auto r1 = g1.add(g2);
 		assert(r1 == Gector<double>({ 3., 3. }));
 		r1.backward(NGector<double> {-1., 1.});
+		std::cout << g1.get_grad();
 		assert(g1.get_grad() == Gector<double>({ -1., 1. }));
 		assert(g2.get_grad() == Gector<double>({ -1., 1. }));
 	}
