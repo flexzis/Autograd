@@ -62,6 +62,28 @@ public:
 		return data[i];
 	}
 
+	NGector<T> operator*(const NGector& rhs)
+	{
+		assert(data.size() == rhs.size() || data.size() == 1 || rhs.size() == 1);
+		NGector<T> res(std::max(rhs.size(), data.size()), T{});
+		if (rhs.size() == 1)
+		{
+			for (auto i = 0; i < data.size(); ++i)
+				res[i] = data[i] * rhs[0];
+		}
+		else if (data.size() == 1)
+		{
+			for (auto i = 0; i < rhs.size(); ++i)
+				res[i] = data[0] * rhs[i];
+		}
+		else
+		{
+			for (auto i = 0; i < rhs.size(); ++i)
+				res[i] = data[i] * res[i];
+		}
+		return res;
+		
+	}
 	const T& operator [] (size_t i) const
 	{
 		return data[i];
@@ -121,7 +143,7 @@ public:
 		const vector<T>&& data,
 		bool requires_grad = true
 	)
-			: NGector<T>{ data }
+			: NGector<T>{ std::move(data) }
 			, requires_grad{ requires_grad }
 	{}
 
@@ -224,9 +246,21 @@ public:
 			grad[i] += in_grad[i];
 
 		for (auto i = 0; i < depends_on.size(); ++i)
-		{	
-			auto backward_grad = (*depends_on[i])(grad);
-			depends_on[i]->parent.backward(backward_grad);
+		{
+			// 1 argument operator
+			if (depends_on[i]->parent_lhs == depends_on[i]->parent_rhs)
+			{
+				auto par_grad = grad * depends_on[i]->lhs_partial_deriv();
+				depends_on[i]->parent_lhs.backward(grad_par);
+			}
+			else
+			{
+				auto par_lhs_grad = grad * depends_on[i]->lhs_partial_deriv();
+				depends_on[i]->parent_lhs.backward(grad_par);
+
+				auto par_rhs_grad = grad * depends_on[i]->rhs_partial_deriv();
+				depends_on[i]->parent_rhs.backward(par_rhs_grad);
+			}
 		}
 	}
 };

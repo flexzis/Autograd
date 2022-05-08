@@ -15,16 +15,17 @@ template<typename T>
 class GradFunc
 {
 public:
-	Gector<T>& parent;
-	Gector<T>& uncle;
+	Gector<T>& parent_lhs;
+	Gector<T>& parent_rhs;
 	GradFunc() = default;
 
-	GradFunc(Gector<T>& parent, Gector<T>& uncle)
-		: parent{ parent }
-		, uncle{ uncle }
+	GradFunc(Gector<T>& parent_lhs, Gector<T>& parent_rhs)
+		: parent_lhs{ parent_lhs }
+		, parent_rhs{ parent_rhs }
 	{}
 
-	virtual NGector<T> operator()(const NGector<T>& grad) const = 0;
+	virtual NGector<T> lhs_partial_deriv() const = 0;
+	virtual NGector<T> rhs_partial_deriv() const = 0;
 };
 
 template<typename T>
@@ -32,11 +33,14 @@ class GradSum: public GradFunc<T>
 {
 public:
 	using GradFunc<T>::GradFunc;
-	// grad should be 1-element Gector
-	NGector<T> operator()(const NGector<T>& grad) const override
+	NGector<T> lhs_partial_deriv() const override
 	{
-		assert(grad.size() == 1);
-		return NGector<T>(this->parent.size(), grad[0]);
+		return NGector<T>(this->parent_lhs.size(), 1);
+	}
+
+	NGector<T> rhs_partial_deriv() const override
+	{
+		return lhs_partial_deriv();
 	}
 };
 
@@ -45,9 +49,14 @@ class GradAdd : public GradFunc<T>
 {
 public:
 	using GradFunc<T>::GradFunc;
-	NGector<T> operator()(const NGector<T>& grad) const override
+	NGector<T> lhs_partial_deriv() const override
 	{
-		return grad;
+		return NGector<T>(this->parent_lhs.size(), 1);
+	}
+
+	NGector<T> rhs_partial_deriv() const override
+	{
+		return lhs_partial_deriv();
 	}
 };
 
@@ -56,10 +65,22 @@ class GradMul : public GradFunc<T>
 {
 public:
 	using GradFunc<T>::GradFunc;
+
+	NGector<T> lhs_partial_deriv() const override
+	{
+		auto res = this->parent_rhs;
+		return res;
+	}
+
+	NGector<T> rhs_partial_deriv() const override
+	{
+		auto res = this->parent_lhs;
+		return res;
+	}
+
 	NGector<T> operator()(const NGector<T>& grad) const override
 	{
-		NGector<T> res = grad;
-		std::cout << "uncle = " << this->uncle;
+		auto res = grad;
 		for (auto i = 0; i < res.size(); ++i)
 			res[i] *= this->uncle[i];
 
