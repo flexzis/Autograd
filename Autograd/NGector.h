@@ -69,6 +69,14 @@ public:
 		return *this;
 	}
 
+	NGector<T> sum()
+	{
+		T sum{};
+		for (auto& el : data)
+			sum += el;
+		return { sum };
+	}
+
 	bool operator==(const NGector<T>& other) const
 	{
 		auto size = this->size();
@@ -81,21 +89,6 @@ public:
 		}
 		return true;
 	}
-
-	friend NGector<T> operator+ <>(const NGector<T>&, const NGector<T>&);
-	friend NGector<T> operator- <>(const NGector<T>&, const NGector<T>&);
-	friend NGector<T> operator* <>(const NGector<T>&, const NGector<T>&);
-	friend NGector<T> operator/ <>(const NGector<T>&, const NGector<T>&);
-
-	//Operators for operations with plain objects
-
-	friend NGector<T> operator+ <>(const NGector<T>&, T);
-	friend NGector<T> operator+ <>(T, const NGector<T>&);
-	friend NGector<T> operator* <>(const NGector<T>&, T);
-	friend NGector<T> operator* <>(T, const NGector<T>&);
-
-	friend std::ostream& operator<< <>(std::ostream&, const NGector<T>&);
-
 
 	const vector<T>& get_data() const
 	{
