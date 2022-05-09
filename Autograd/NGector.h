@@ -91,8 +91,12 @@ public:
 
 	friend NGector<T> operator+ <>(const NGector<T>&, T);
 	friend NGector<T> operator+ <>(T, const NGector<T>&);
+	friend NGector<T> operator- <>(const NGector<T>&, T);
+	friend NGector<T> operator- <>(T, const NGector<T>&);
 	friend NGector<T> operator* <>(const NGector<T>&, T);
 	friend NGector<T> operator* <>(T, const NGector<T>&);
+	friend NGector<T> operator/ <>(const NGector<T>&, T);
+	friend NGector<T> operator/ <>(T, const NGector<T>&);
 
 	friend std::ostream& operator<< <>(std::ostream&, const NGector<T>&);
 
@@ -219,6 +223,25 @@ NGector<T> operator+(T lhs, const NGector<T>& rhs)
 }
 
 template<typename T>
+NGector<T> operator-(const NGector<T>& lhs, T rhs)
+{
+	NGector<T> res(vector<T>(lhs.size(), 0));
+	for (auto i = 0; i < lhs.size(); ++i)
+		res[i] = lhs[i] - rhs;
+	return res;
+}
+
+template<typename T>
+NGector<T> operator-(T lhs, const NGector<T>& rhs)
+{
+	NGector<T> res(vector<T>(rhs.size(), 0));
+	for (auto i = 0; i < rhs.size(); ++i)
+		res[i] = lhs - rhs[i];
+	return res;
+}
+
+
+template<typename T>
 NGector<T> operator*(const NGector<T>& lhs, T rhs)
 {
 	NGector<T> res(vector<T>(lhs.size(), 0));
@@ -233,6 +256,24 @@ NGector<T> operator*(T lhs, const NGector<T>& rhs)
 	NGector<T> res(vector<T>(rhs.size(), 0));
 	for (auto i = 0; i < rhs.size(); ++i)
 		res[i] = lhs * rhs[i];
+	return res;
+}
+
+template<typename T>
+NGector<T> operator/(const NGector<T>& lhs, T rhs)
+{
+	NGector<T> res(vector<T>(lhs.size(), 0));
+	for (auto i = 0; i < lhs.size(); ++i)
+		res[i] = lhs[i] / rhs;
+	return res;
+}
+
+template<typename T>
+NGector<T> operator/(T lhs, const NGector<T>& rhs)
+{
+	NGector<T> res(vector<T>(rhs.size(), 0));
+	for (auto i = 0; i < rhs.size(); ++i)
+		res[i] = lhs / rhs[i];
 	return res;
 }
 

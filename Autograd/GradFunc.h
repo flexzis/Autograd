@@ -105,7 +105,7 @@ public:
 	using UnaryGradFunc<T>::UnaryGradFunc;
 	NGector<T> get_partial_deriv() const override
 	{
-		return NGector<T>(vector<T>(UnaryGradFunc<T>::get_parent().size(), 1));
+		return NGector<T>(vector<T>(this->get_parent().size(), 1));
 	}
 };
 

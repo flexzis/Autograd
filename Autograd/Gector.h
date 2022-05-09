@@ -10,7 +10,7 @@
 
 using std::pair;
 using std::vector;
-using std::unique_ptr;
+using std::shared_ptr;
 
 
 /*
@@ -19,7 +19,7 @@ using std::unique_ptr;
 template <typename T>
 class Gector
 {
-	unique_ptr<GradFunc<T>>	depends_on{};
+	shared_ptr<GradFunc<T>>	depends_on{};
 	NGector<T> grad{};
 public:
 	NGector<T> data;
@@ -51,6 +51,7 @@ public:
 	Gector(const Gector<T>& other)
 		: data{ other.data }
 		, requires_grad{ other.requires_grad }
+		, depends_on{ other.depends_on }
 	{}
 
 	Gector(Gector<T>&& other) noexcept
@@ -63,6 +64,7 @@ public:
 	{
 		this->data = other.data;
 		requires_grad = other.requires_grad;
+		this->depends_on = other.depends_on;
 		return *this;
 	}
 
@@ -112,9 +114,6 @@ public:
 	friend Gector<T> operator/ <>(Gector<T>&, NGector<T>&);
 	friend Gector<T> operator/ <>(NGector<T>&, Gector<T>&);
 
-
-
-
 	Gector<T> sum()
 	{
 		return Gsum(*this);
@@ -137,14 +136,12 @@ public:
 			{
 				if (depends_on->get_parent().requires_grad)
 				{
-					std::cout << "In parent\n";
 					NGector<T> partial_deriv = depends_on->get_partial_deriv();
 					NGector<T> par_lhs_grad = grad * partial_deriv;
 					depends_on->get_parent().backward(par_lhs_grad);
 				}
 				if (depends_on->get_other_parent().requires_grad)
 				{
-					std::cout << "In other parent\n";
 					NGector<T> other_partial_deriv = depends_on->get_other_partial_deriv();
 					NGector<T> par_rhs_grad = grad * other_partial_deriv;
 					depends_on->get_other_parent().backward(par_rhs_grad);
@@ -154,7 +151,6 @@ public:
 			{
 				if (depends_on->get_parent().requires_grad)
 				{
-					std::cout << "In unary parent\n";
 					auto par_grad = grad * depends_on->get_partial_deriv();
 					depends_on->get_parent().backward(par_grad);
 				}
