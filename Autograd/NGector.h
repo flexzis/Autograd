@@ -20,9 +20,14 @@ public:
 		: data{ data }
 	{}
 
+	NGector(T data)
+		: data{ data}
+	{}
+
 	NGector(vector<T>&& data)
 		: data{ data }
 	{}
+
 
 	NGector(std::initializer_list<T> list)
 		: data{ list }
@@ -40,19 +45,28 @@ public:
 		: data{ vector<T>(size, fill_val) }
 	{}
 
-	NGector operator=(NGector other)
+	//NGector<T>& operator=(NGector<T> other)
+	//{
+	//	data = other.data;
+	//	return *this;
+	//}
+
+	NGector<T>& operator=(NGector<T>& other)
 	{
 		data = other.data;
+		return *this;
 	}
 
-	NGector& operator=(NGector& other)
+	NGector<T>& operator=(const NGector<T>& other)
 	{
 		data = other.data;
+		return *this;
 	}
 
-	NGector& operator=(NGector&& other)
+	NGector<T>& operator=(NGector<T>&& other)
 	{
 		data = other.data;
+		return *this;
 	}
 
 	bool operator==(const NGector<T>& other) const
@@ -68,19 +82,19 @@ public:
 		return true;
 	}
 
-	friend NGector<T> operator+(const NGector&, const NGector&);
-	friend NGector<T> operator-(const NGector&, const NGector&);
-	friend NGector<T> operator*(const NGector&, const NGector&);
-	friend NGector<T> operator/(const NGector&, const NGector&);
+	friend NGector<T> operator+ <>(const NGector<T>&, const NGector<T>&);
+	friend NGector<T> operator- <>(const NGector<T>&, const NGector<T>&);
+	friend NGector<T> operator* <>(const NGector<T>&, const NGector<T>&);
+	friend NGector<T> operator/ <>(const NGector<T>&, const NGector<T>&);
 
 	//Operators for operations with plain objects
 
-	friend NGector<T> operator+(const NGector&, T);
-	friend NGector<T> operator+(T, const NGector&);
-	friend NGector<T> operator*(const NGector&, T);
-	friend NGector<T> operator*(T, const NGector&);
+	friend NGector<T> operator+ <>(const NGector<T>&, T);
+	friend NGector<T> operator+ <>(T, const NGector<T>&);
+	friend NGector<T> operator* <>(const NGector<T>&, T);
+	friend NGector<T> operator* <>(T, const NGector<T>&);
 
-	friend std::ostream& operator <<(std::ostream&, const Gector<T>&);
+	friend std::ostream& operator<< <>(std::ostream&, const NGector<T>&);
 
 
 	const vector<T>& get_data() const
@@ -133,7 +147,11 @@ public:
 template<typename T>
 NGector<T> operator+(const NGector<T>& lhs, const NGector<T>& rhs)
 {
-	assert(lhs.size() == rhs.size());
+	assert(lhs.size() == rhs.size() || lhs.size() == 1 || rhs.size() == 1);
+	if (lhs.size() == 1)
+		return lhs[0] + rhs;
+	if (rhs.size() == 1)
+		return lhs + rhs[0];
 	NGector<T> res(vector<T>(lhs.size(), 0));
 	for (auto i = 0; i < lhs.size(); ++i)
 		res[i] = lhs[i] + rhs[i];
@@ -143,8 +161,11 @@ NGector<T> operator+(const NGector<T>& lhs, const NGector<T>& rhs)
 template<typename T>
 NGector<T> operator-(const NGector<T>& lhs, const NGector<T>& rhs)
 {
-	assert(lhs.size() == rhs.size());
-	NGector<T> res(vector<T>(lhs.size(), 0));
+	assert(lhs.size() == rhs.size() || lhs.size() == 1 || rhs.size() == 1);
+	if (lhs.size() == 1)
+		return lhs[0] - rhs;
+	if (rhs.size() == 1)
+		return lhs - rhs[0];	NGector<T> res(vector<T>(lhs.size(), 0));
 	for (auto i = 0; i < lhs.size(); ++i)
 		res[i] = lhs[i] - rhs[i];
 	return res;
@@ -153,7 +174,11 @@ NGector<T> operator-(const NGector<T>& lhs, const NGector<T>& rhs)
 template<typename T>
 NGector<T> operator*(const NGector<T>& lhs, const NGector<T>& rhs)
 {
-	assert(lhs.size() == rhs.size());
+	assert(lhs.size() == rhs.size() || lhs.size() == 1 || rhs.size() == 1);
+	if (lhs.size() == 1)
+		return lhs[0] * rhs;
+	if (rhs.size() == 1)
+		return lhs * rhs[0];	
 	NGector<T> res(vector<T>(lhs.size(), 0));
 	for (auto i = 0; i < lhs.size(); ++i)
 		res[i] = lhs[i] * rhs[i];
@@ -163,7 +188,11 @@ NGector<T> operator*(const NGector<T>& lhs, const NGector<T>& rhs)
 template<typename T>
 NGector<T> operator/(const NGector<T>& lhs, const NGector<T>& rhs)
 {
-	assert(lhs.size() == rhs.size());
+	assert(lhs.size() == rhs.size() || lhs.size() == 1 || rhs.size() == 1);
+	if (lhs.size() == 1)
+		return lhs[0] / rhs;
+	if (rhs.size() == 1)
+		return lhs / rhs[0];	
 	NGector<T> res(vector<T>(lhs.size(), 0));
 	for (auto i = 0; i < lhs.size(); ++i)
 		res[i] = lhs[i] / rhs[i];

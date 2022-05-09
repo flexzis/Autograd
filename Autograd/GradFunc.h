@@ -23,8 +23,8 @@ public:
 	
 	virtual bool is_binary() const = 0;
 
-	virtual Gector<T>& get_parent() = 0;
-	virtual Gector<T>& get_other_parent() = 0;
+	virtual Gector<T>& get_parent() const = 0;
+	virtual Gector<T>& get_other_parent() const = 0;
 
 	virtual NGector<T> get_partial_deriv() const = 0;
 	virtual NGector<T> get_other_partial_deriv() const = 0;
@@ -52,12 +52,12 @@ public:
 		return false;
 	}
 
-	virtual Gector<T>& get_parent() override
+	virtual Gector<T>& get_parent() const override
 	{
 		return parent;
 	}
 
-	virtual Gector<T>& get_other_parent() override
+	virtual Gector<T>& get_other_parent() const override
 	{
 		throw std::logic_error("UnaryGradFunc is not supposed to have the second parent.");
 	}
@@ -87,12 +87,12 @@ public:
 		return true;
 	}
 
-	virtual Gector<T>& get_parent() override
+	virtual Gector<T>& get_parent() const override
 	{
 		return parent_lhs;
 	}
 
-	virtual Gector<T>& get_other_parent() override
+	virtual Gector<T>& get_other_parent() const override
 	{
 		return parent_rhs;
 	}
@@ -145,12 +145,12 @@ public:
 
 	NGector<T> get_partial_deriv() const override
 	{
-		return this->get_other_parent();
+		return this->get_other_parent().data;
 	}
 
 	NGector<T> get_other_partial_deriv() const override
 	{
-		return this->get_parent();
+		return this->get_parent().data;
 	}
 };
 
@@ -162,11 +162,11 @@ public:
 
 	NGector<T> get_partial_deriv() const override
 	{
-		return 1/this->get_other_parent();
+		return 1/this->get_other_parent().data;
 	}
 
 	NGector<T> get_other_partial_deriv() const override
 	{
-		return -this->get_parent()/(this->get_other_parent() * this->get_other_parent());
+		return -this->get_parent().data/(this->get_other_parent().data * this->get_other_parent().data);
 	}
 };

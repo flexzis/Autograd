@@ -59,15 +59,6 @@ public:
 		, depends_on{ std::move(other.depends_on) }
 	{}
 
-	Gector(const NGector<T>& other)
-		: data{ other.data }
-	{}
-
-	Gector(NGector<T>&& other)
-		: data{ std::move(other.data) }
-	{}
-
-
 	Gector& operator=(const Gector<T>& other)
 	{
 		this->data = other.data;
@@ -106,11 +97,23 @@ public:
 		return grad;
 	}
 
-	friend Gector<T> operator+(const Gector&, const Gector&);
-	friend Gector<T> operator-(const Gector&, const Gector&);
-	friend Gector<T> operator*(const Gector&, const Gector&);
-	friend Gector<T> operator/(const Gector&, const Gector&);
-	friend Gector<T> operator-(const Gector&);
+	friend Gector<T> operator+ <>(Gector<T>&, Gector<T>&);
+	friend Gector<T> operator- <>(Gector<T>&, Gector<T>&);
+	friend Gector<T> operator* <>(Gector<T>&, Gector<T>&);
+	friend Gector<T> operator/ <>(Gector<T>&, Gector<T>&);
+	friend Gector<T> operator- <>(Gector<T>&);
+
+	friend Gector<T> operator+ <>(Gector<T>&, NGector<T>&);
+	friend Gector<T> operator+ <>(NGector<T>&, Gector<T>&);
+	friend Gector<T> operator- <>(Gector<T>&, NGector<T>&);
+	friend Gector<T> operator- <>(NGector<T>&, Gector<T>&);
+	friend Gector<T> operator* <>(Gector<T>&, NGector<T>&);
+	friend Gector<T> operator* <>(NGector<T>&, Gector<T>&);
+	friend Gector<T> operator/ <>(Gector<T>&, NGector<T>&);
+	friend Gector<T> operator/ <>(NGector<T>&, Gector<T>&);
+
+
+
 
 	Gector<T> sum()
 	{
@@ -128,19 +131,22 @@ public:
 		for (auto i = 0; i < in_grad.size(); ++i)
 			grad[i] += in_grad[i];
 
-		// 1 argument operator
 		if (depends_on)
 		{
 			if (depends_on->is_binary())
 			{
 				if (depends_on->get_parent().requires_grad)
 				{
-					auto par_lhs_grad = grad * depends_on->get_partial_deriv();
+					std::cout << "In parent\n";
+					NGector<T> partial_deriv = depends_on->get_partial_deriv();
+					NGector<T> par_lhs_grad = grad * partial_deriv;
 					depends_on->get_parent().backward(par_lhs_grad);
 				}
 				if (depends_on->get_other_parent().requires_grad)
 				{
-					auto par_rhs_grad = grad * depends_on->get_other_partial_deriv();
+					std::cout << "In other parent\n";
+					NGector<T> other_partial_deriv = depends_on->get_other_partial_deriv();
+					NGector<T> par_rhs_grad = grad * other_partial_deriv;
 					depends_on->get_other_parent().backward(par_rhs_grad);
 				}
 			}
@@ -148,6 +154,7 @@ public:
 			{
 				if (depends_on->get_parent().requires_grad)
 				{
+					std::cout << "In unary parent\n";
 					auto par_grad = grad * depends_on->get_partial_deriv();
 					depends_on->get_parent().backward(par_grad);
 				}
@@ -192,37 +199,97 @@ public:
 };
 
 template<typename T>
-Gector<T> operator+(const NGector<T>& lhs, const NGector<T>& rhs)
+Gector<T> operator+(Gector<T>& lhs, Gector<T>& rhs)
 {
 	return Gadd(lhs, rhs);
 }
 
-
 template<typename T>
-Gector<T> operator-(const NGector<T>& lhs, const NGector<T>& rhs)
+Gector<T> operator-(Gector<T>& lhs, Gector<T>& rhs)
 {
 	auto neg = Gneg(rhs);
 	return Gadd(lhs, neg);
 }
 
 template<typename T>
-Gector<T> operator*(const NGector<T>& lhs, const NGector<T>& rhs)
+Gector<T> operator*(Gector<T>& lhs, Gector<T>& rhs)
 {
 	return Gmul(lhs, rhs);
 }
 
 template<typename T>
-Gector<T> operator/(const NGector<T>& lhs, const NGector<T>& rhs)
+Gector<T> operator/(Gector<T>& lhs, Gector<T>& rhs)
 {
 	return Gdiv(lhs, rhs);
 }
 
-
-
 template<typename T>
-Gector<T> operator-(const Gector<T>& operand)
+Gector<T> operator-(Gector<T>& operand)
 {
 	return Gneg(operand);
 }
 
 
+template<typename T>
+Gector<T> operator+(Gector<T>& lhs, NGector<T>& rhs)
+{
+	Gector<double> res(lhs);
+	res.data = res.data + rhs;
+	return res;
+}
+
+template<typename T>
+Gector<T> operator+(NGector<T>& lhs, Gector<T>& rhs)
+{
+	Gector<double> res(rhs);
+	res.data = res.data + lhs;
+	return res;
+}
+
+template<typename T>
+Gector<T> operator-(Gector<T>& lhs, NGector<T>& rhs)
+{
+	Gector<double> res(lhs);
+	res.data = res.data - rhs;
+	return res;
+}
+
+template<typename T>
+Gector<T> operator-(NGector<T>& lhs, Gector<T>& rhs)
+{
+	Gector<double> res(rhs);
+	res.data = lhs - res.data ;
+	return res;
+}
+
+template<typename T>
+Gector<T> operator*(Gector<T>& lhs, NGector<T>& rhs)
+{
+	Gector<double> res(lhs);
+	res.data = res.data * rhs;
+	return res;
+}
+
+template<typename T>
+Gector<T> operator*(NGector<T>& lhs, Gector<T>& rhs)
+{
+	Gector<double> res(rhs);
+	res.data = lhs * res.data;
+	return res;
+}
+
+template<typename T>
+Gector<T> operator/(Gector<T>& lhs, NGector<T>& rhs)
+{
+	Gector<double> res(lhs);
+	res.data = res.data / rhs;
+	return res;
+}
+
+template<typename T>
+Gector<T> operator/(NGector<T>& lhs, Gector<T>& rhs)
+{
+	Gector<double> res(rhs);
+	res.data = lhs / res.data;
+	return res;
+}

@@ -90,7 +90,7 @@ template<typename T>
 		 res[i] = -v[i];
 
 	 if (v.requires_grad)
-		 res.add_dependency(new GradNeg<T>(v, v));
+		 res.add_dependency(new GradNeg<T>(v));
 
 	 return res;
  }

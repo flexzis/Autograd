@@ -68,23 +68,23 @@ void test_mul()
 
 void minimize()
 {
-	Gector<double> x{ 2., -2.};
-	
-	for (auto i = 0; i < 10; ++i)
-	{
-		std::cout << "x = " << x.data;
-		auto square = x * x;
-		std::cout << "x ** 2 = " << square.data;
-		auto sum_of_squares = square.sum();
-		std::cout << "sum(x**2) = " << sum_of_squares.data;
-		sum_of_squares.backward();
-		std::cout << "grad(x**2) = " << square.get_grad();
-		auto alpha = Gector<double>{ 0.1, 0.1 };
-		auto delta_x = square.get_grad() * alpha;
-		auto y = x - delta_x;
-		x = y;
-		std::cout << i << x.data << "\n\n";
-	}
+	//Gector<double> x{ 2., -2.};
+	//
+	//for (auto i = 0; i < 10; ++i)
+	//{
+	//	std::cout << "x = " << x.data;
+	//	auto square = x * x;
+	//	std::cout << "x ** 2 = " << square.data;
+	//	auto sum_of_squares = square.sum();
+	//	std::cout << "sum(x**2) = " << sum_of_squares.data;
+	//	sum_of_squares.backward();
+	//	std::cout << "grad(x**2) = " << square.get_grad();
+	//	auto alpha = 0.1;
+	//	auto delta_x = square.get_grad() * alpha;
+	//	Gector<double> y = x - delta_x;
+	//	x = y;
+	//	std::cout << i << x.data << "\n\n";
+	//}
 }
 
 void test_all()
