@@ -1,6 +1,11 @@
 #pragma once
 #include <cassert>
 #include <vector>
+#include <stdexcept>
+
+// Suspicious: NGector and Gector both have overloaded operators. 
+// What happens if we pass Gector to some of BinaryGradFunc and use its overloaded operators? 
+
 
 using std::vector;
 
@@ -10,86 +15,158 @@ class NGector;
 template <typename T>
 class Gector;
 
-
 template<typename T>
 class GradFunc
 {
 public:
+	virtual ~GradFunc() = 0;
+	
+	virtual bool is_binary() const = 0;
+
+	virtual Gector<T>& get_parent() = 0;
+	virtual Gector<T>& get_other_parent() = 0;
+
+	virtual NGector<T> get_partial_deriv() const = 0;
+	virtual NGector<T> get_other_partial_deriv() const = 0;
+};
+
+template<typename T>
+GradFunc<T>::~GradFunc()
+{ }
+
+
+template<typename T>
+class UnaryGradFunc: public GradFunc<T>
+{
+	Gector<T>& parent;
+
+public:
+	UnaryGradFunc() = default;
+
+	UnaryGradFunc(Gector<T>& parent)
+		: parent{ parent }
+	{}
+
+	virtual bool is_binary() const override
+	{
+		return false;
+	}
+
+	virtual Gector<T>& get_parent() override
+	{
+		return parent;
+	}
+
+	virtual Gector<T>& get_other_parent() override
+	{
+		throw std::logic_error("UnaryGradFunc is not supposed to have the second parent.");
+	}
+
+	virtual NGector<T> get_other_partial_deriv() const override
+	{
+		throw std::logic_error("UnaryGradFunc is not supposed to have the second partial derivative.");
+	}
+};
+
+
+template<typename T>
+class BinaryGradFunc: public GradFunc<T>
+{
 	Gector<T>& parent_lhs;
 	Gector<T>& parent_rhs;
-	GradFunc() = default;
+public:
+	BinaryGradFunc() = default;
 
-	GradFunc(Gector<T>& parent_lhs, Gector<T>& parent_rhs)
+	BinaryGradFunc(Gector<T>& parent_lhs, Gector<T>& parent_rhs)
 		: parent_lhs{ parent_lhs }
 		, parent_rhs{ parent_rhs }
 	{}
 
-	virtual NGector<T> lhs_partial_deriv() const = 0;
-	virtual NGector<T> rhs_partial_deriv() const = 0;
-};
-
-template<typename T>
-class GradSum: public GradFunc<T>
-{
-public:
-	using GradFunc<T>::GradFunc;
-	NGector<T> lhs_partial_deriv() const override
+	virtual bool is_binary() const override
 	{
-		return NGector<T>(this->parent_lhs.size(), 1);
+		return true;
 	}
 
-	NGector<T> rhs_partial_deriv() const override
+	virtual Gector<T>& get_parent() override
 	{
-		return lhs_partial_deriv();
+		return parent_lhs;
+	}
+
+	virtual Gector<T>& get_other_parent() override
+	{
+		return parent_rhs;
 	}
 };
 
 template<typename T>
-class GradAdd : public GradFunc<T>
+class GradSum: public UnaryGradFunc<T>
 {
 public:
-	using GradFunc<T>::GradFunc;
-	NGector<T> lhs_partial_deriv() const override
+	using UnaryGradFunc<T>::UnaryGradFunc;
+	NGector<T> get_partial_deriv() const override
 	{
-		return NGector<T>(this->parent_lhs.size(), 1);
-	}
-
-	NGector<T> rhs_partial_deriv() const override
-	{
-		return lhs_partial_deriv();
+		return NGector<T>(vector<T>(UnaryGradFunc<T>::get_parent().size(), 1));
 	}
 };
 
 template<typename T>
-class GradMul : public GradFunc<T>
+class GradNeg : public UnaryGradFunc<T>
 {
 public:
-	using GradFunc<T>::GradFunc;
-
-	NGector<T> lhs_partial_deriv() const override
+	using UnaryGradFunc<T>::UnaryGradFunc;
+	NGector<T> get_partial_deriv() const override
 	{
-		return this->parent_rhs;
+		return NGector<T>(vector<T>(UnaryGradFunc<T>::get_parent().size(), -1));
+	}
+};
+
+
+template<typename T>
+class GradAdd : public BinaryGradFunc<T>
+{
+public:
+	using BinaryGradFunc<T>::BinaryGradFunc;
+	NGector<T> get_partial_deriv() const override
+	{
+		return NGector<T>(this->get_parent().size(), 1);
 	}
 
-	NGector<T> rhs_partial_deriv() const override
+	NGector<T> get_other_partial_deriv() const override
 	{
-		return this->parent_lhs;
+		return NGector<T>(this->get_other_parent().size(), 1);
 	}
-
 };
 
 template<typename T>
-class GradNeg : public GradFunc<T>
+class GradMul : public BinaryGradFunc<T>
 {
 public:
-	using GradFunc<T>::GradFunc;
-	NGector<T> lhs_partial_deriv() const override
+	using BinaryGradFunc<T>::BinaryGradFunc;
+
+	NGector<T> get_partial_deriv() const override
 	{
-		return NGector<T>(this->parent_lhs.size(), -1);
+		return this->get_other_parent();
 	}
 
-	NGector<T> rhs_partial_deriv() const override
+	NGector<T> get_other_partial_deriv() const override
 	{
-		return lhs_partial_deriv();
+		return this->get_parent();
+	}
+};
+
+template<typename T>
+class GradDiv : public BinaryGradFunc<T>
+{
+public:
+	using BinaryGradFunc<T>::BinaryGradFunc;
+
+	NGector<T> get_partial_deriv() const override
+	{
+		return 1/this->get_other_parent();
+	}
+
+	NGector<T> get_other_partial_deriv() const override
+	{
+		return -this->get_parent()/(this->get_other_parent() * this->get_other_parent());
 	}
 };
