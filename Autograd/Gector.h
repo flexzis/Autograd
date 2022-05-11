@@ -16,14 +16,14 @@ template <typename T>
 class NGector;
 
 /*
-	Class representing Variable.
+	Class representing Node.
 */
 template <typename T>
 class Gector
 {
 	shared_ptr<GradFunc<T>>	depends_on{};
 	shared_ptr<Gector<T>> grad{};
-
+	vector<shared_ptr<Gector<T>>> temp_nodes{};
 public:
 	NGector<T> data;
 
@@ -61,6 +61,12 @@ public:
 		, requires_grad{ other.requires_grad }
 		, depends_on{ std::move(other.depends_on) }
 	{}
+
+	friend Gector<T>& operator+ <>(Gector<T>&, Gector<T>&);
+	friend Gector<T>& operator- <>(Gector<T>&, Gector<T>&);
+	friend Gector<T>& operator* <>(Gector<T>&, Gector<T>&);
+	friend Gector<T>& operator/ <>(Gector<T>&, Gector<T>&);
+	friend Gector<T>& operator- <>(Gector<T>&);
 
 	Gector& operator=(const Gector<T>& other)
 	{
@@ -101,9 +107,11 @@ public:
 		return *grad;
 	}
 
-	Gector<T> sum()
+	Gector<T>& sum()
 	{
-		return Gsum(*this);
+		auto new_node = Gsum(*this);
+		temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
+		return *temp_nodes.back();
 	}
 
 	void resize(size_t new_size)
@@ -189,34 +197,44 @@ public:
 };
 
 template<typename T>
-Gector<T> operator+(Gector<T>& lhs, Gector<T>& rhs)
+Gector<T>& operator+(Gector<T>& lhs, Gector<T>& rhs)
 {
-	return Gadd(lhs, rhs);
+	auto new_node = Gadd(lhs, rhs);
+	lhs.temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
+	return *lhs.temp_nodes.back();
 }
 
 template<typename T>
-Gector<T> operator-(Gector<T>& lhs, Gector<T>& rhs)
+Gector<T>& operator-(Gector<T>& lhs, Gector<T>& rhs)
 {
 	auto neg = Gneg(rhs);
-	return Gadd(lhs, neg);
+	auto new_node = Gadd(lhs, neg);
+	lhs.temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
+	return *lhs.temp_nodes.back();
 }
 
 template<typename T>
-Gector<T> operator*(Gector<T>& lhs, Gector<T>& rhs)
+Gector<T>& operator*(Gector<T>& lhs, Gector<T>& rhs)
 {
-	return Gmul(lhs, rhs);
+	auto new_node = Gmul(lhs, rhs);
+	lhs.temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
+	return *lhs.temp_nodes.back();
 }
 
 template<typename T>
-Gector<T> operator/(Gector<T>& lhs, Gector<T>& rhs)
+Gector<T>& operator/(Gector<T>& lhs, Gector<T>& rhs)
 {
-	return Gdiv(lhs, rhs);
+	auto new_node = Gdiv(lhs, rhs);
+	lhs.temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
+	return *lhs.temp_nodes.back();
 }
 
 template<typename T>
-Gector<T> operator-(Gector<T>& operand)
+Gector<T>& operator-(Gector<T>& operand)
 {
-	return Gneg(operand);
+	auto new_node = Gneg(operand);
+	operand.temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
+	return *operand.temp_nodes.back();
 }
 
 template<typename T>
