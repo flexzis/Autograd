@@ -96,7 +96,7 @@ public:
 		depends_on.reset(dep);
 	}
 
-	Gector<T> get_grad()
+	Gector<T>& get_grad()
 	{
 		return *grad;
 	}
@@ -118,6 +118,7 @@ public:
 		if (!grad)
 			grad.reset(new Gector<T>(in_grad.size(), T{}));
 
+		std::cout << grad->size() << "  " << in_grad.size() << "\n";
 		for (auto i = 0; i < in_grad.size(); ++i)
 			(*grad)[i] += in_grad[i];
 
@@ -140,6 +141,7 @@ public:
 			}
 			else
 			{
+				// x = A @ w + w0, data = NGector<Ngector>
 				if (depends_on->get_parent().requires_grad)
 				{
 					auto partial_deriv = depends_on->get_partial_deriv();

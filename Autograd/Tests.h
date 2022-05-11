@@ -49,7 +49,7 @@ void test_add()
 		auto r1 = g1 + g2;
 		assert(r1 == Gector<double>({ 3., 3. }));
 		r1.backward(Gector<double> {-1., 1.});
-		std::cout << g1.get_grad();
+		//std::cout << g1.get_grad();
 		assert(g1.get_grad() == Gector<double>({ -1., 1. }));
 		assert(g2.get_grad() == Gector<double>({ -1., 1. }));
 	}
@@ -68,25 +68,24 @@ void test_mul()
 
 void minimize()
 {
-	Gector<double> x_{ 2., -2.};
-	
-	for (auto i = 0; i < 100; ++i)
-	{
-		Gector<double> x = x_;
-		std::cout << "x = " << x.data;
-		auto square = x * x;
-		std::cout << "x ** 2 = " << square.data;
-		auto sum_of_squares = square.sum();
-		std::cout << "sum(x**2) = " << sum_of_squares.data;
-		sum_of_squares.backward();
-		std::cout << "grad(x**2) = " << x.get_grad();
-		auto alpha = 0.1;
-		auto delta_x = x.get_grad() * alpha;
-		Gector<double> y = x - delta_x;
-		x = y;
-		x_.data = x.data;
-		std::cout << i  << ": "  << y.data << "\n\n";
-	}
+	//std::cout << y;
+	//for (auto i = 0; i < 100; ++i)
+	//{
+	//	Gector<double> x = x_;
+	//	std::cout << "x = " << x.data;
+	//	auto square = x * x;
+	//	std::cout << "x ** 2 = " << square.data;
+	//	auto sum_of_squares = square.sum();
+	//	std::cout << "sum(x**2) = " << sum_of_squares.data;
+	//	sum_of_squares.backward();
+	//	std::cout << "grad(x**2) = " << x.get_grad();
+	//	auto alpha = 0.1;
+	//	auto delta_x = x.get_grad() * alpha;
+	//	Gector<double> y = x - delta_x;
+	//	x = y;
+	//	x_.data = x.data;
+	//	std::cout << i << ": " << y.data << "\n\n";
+	//}
 }
 
 void test_all()
