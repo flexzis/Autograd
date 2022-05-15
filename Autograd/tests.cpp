@@ -6,8 +6,8 @@
 #include <algorithm>
 #include <random>
 #include <functional>
-#include "gector.h"
-#include "operation.h"
+#include "Gector.h"
+#include "Operation.h"
 
 using std::vector;
 using std::cin;

@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 #include <iostream>
-#include "grad_func.h"
+#include "GradFunc.h"
 
 /*
 	For Unary GFunctions:

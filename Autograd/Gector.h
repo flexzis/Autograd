@@ -5,9 +5,9 @@
 #include <memory>
 #include <initializer_list>
 #include <omp.h>
-#include "operation.h"
-#include "ngector.h"
-#include "grad_func.h"
+#include "Operation.h"
+#include "NGector.h"
+#include "GradFunc.h"
 
 
 using std::pair;
@@ -128,7 +128,7 @@ public:
 		if (!grad)
 			grad.reset(new Gector<T>(in_grad.size(), T{}));
 
-		std::cout << grad->size() << "  " << in_grad.size() << "\n";
+		//std::cout << grad->size() << "  " << in_grad.size() << "\n";
 		for (auto i = 0; i < in_grad.size(); ++i)
 			(*grad)[i] += in_grad[i];
 
