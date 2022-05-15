@@ -146,6 +146,8 @@ NGector<T> operator+(const NGector<T>& lhs, const NGector<T>& rhs)
 	if (rhs.size() == 1)
 		return lhs + rhs[0];
 	NGector<T> res(vector<T>(lhs.size(), 0));
+
+	#pragma omp for
 	for (auto i = 0; i < lhs.size(); ++i)
 		res[i] = lhs[i] + rhs[i];
 	return res;
@@ -158,7 +160,10 @@ NGector<T> operator-(const NGector<T>& lhs, const NGector<T>& rhs)
 	if (lhs.size() == 1)
 		return lhs[0] - rhs;
 	if (rhs.size() == 1)
-		return lhs - rhs[0];	NGector<T> res(vector<T>(lhs.size(), 0));
+		return lhs - rhs[0];	
+	NGector<T> res(vector<T>(lhs.size(), 0));
+
+	//#pragma omp parallel for
 	for (auto i = 0; i < lhs.size(); ++i)
 		res[i] = lhs[i] - rhs[i];
 	return res;
@@ -173,6 +178,8 @@ NGector<T> operator*(const NGector<T>& lhs, const NGector<T>& rhs)
 	if (rhs.size() == 1)
 		return lhs * rhs[0];	
 	NGector<T> res(vector<T>(lhs.size(), 0));
+	
+	#pragma omp parallel for
 	for (auto i = 0; i < lhs.size(); ++i)
 		res[i] = lhs[i] * rhs[i];
 	return res;
@@ -187,8 +194,21 @@ NGector<T> operator/(const NGector<T>& lhs, const NGector<T>& rhs)
 	if (rhs.size() == 1)
 		return lhs / rhs[0];	
 	NGector<T> res(vector<T>(lhs.size(), 0));
+
+	//#pragma omp parallel for
 	for (auto i = 0; i < lhs.size(); ++i)
 		res[i] = lhs[i] / rhs[i];
+	return res;
+}
+
+template<typename T>
+NGector<T> operator-(const NGector<T>& operand)
+{
+	NGector<T> res(vector<T>(operand.size(), 0));
+
+	//#pragma omp parallel for
+	for (auto i = 0; i < operand.size(); ++i)
+		res[i] = -operand[i];
 	return res;
 }
 
@@ -197,6 +217,8 @@ template<typename T>
 NGector<T> operator+(const NGector<T>& lhs, T rhs)
 {
 	NGector<T> res(vector<T>(lhs.size(), 0));
+
+	//#pragma omp parallel for
 	for (auto i = 0; i < lhs.size(); ++i)
 		res[i] = lhs[i] + rhs;
 	return res;
@@ -206,6 +228,8 @@ template<typename T>
 NGector<T> operator+(T lhs, const NGector<T>& rhs)
 {
 	NGector<T> res(vector<T>(rhs.size(), 0));
+
+	//#pragma omp parallel for
 	for (auto i = 0; i < rhs.size(); ++i)
 		res[i] = lhs + rhs[i];
 	return res;
@@ -215,6 +239,8 @@ template<typename T>
 NGector<T> operator-(const NGector<T>& lhs, T rhs)
 {
 	NGector<T> res(vector<T>(lhs.size(), 0));
+	
+	//#pragma omp parallel for
 	for (auto i = 0; i < lhs.size(); ++i)
 		res[i] = lhs[i] - rhs;
 	return res;
@@ -224,6 +250,7 @@ template<typename T>
 NGector<T> operator-(T lhs, const NGector<T>& rhs)
 {
 	NGector<T> res(vector<T>(rhs.size(), 0));
+	//#pragma omp parallel for
 	for (auto i = 0; i < rhs.size(); ++i)
 		res[i] = lhs - rhs[i];
 	return res;
@@ -234,6 +261,8 @@ template<typename T>
 NGector<T> operator*(const NGector<T>& lhs, T rhs)
 {
 	NGector<T> res(vector<T>(lhs.size(), 0));
+	
+	#pragma omp for
 	for (auto i = 0; i < lhs.size(); ++i)
 		res[i] = lhs[i] * rhs;
 	return res;
@@ -243,6 +272,8 @@ template<typename T>
 NGector<T> operator*(T lhs, const NGector<T>& rhs)
 {
 	NGector<T> res(vector<T>(rhs.size(), 0));
+	
+	#pragma omp for
 	for (auto i = 0; i < rhs.size(); ++i)
 		res[i] = lhs * rhs[i];
 	return res;
@@ -252,6 +283,8 @@ template<typename T>
 NGector<T> operator/(const NGector<T>& lhs, T rhs)
 {
 	NGector<T> res(vector<T>(lhs.size(), 0));
+	
+	//#pragma omp parallel for
 	for (auto i = 0; i < lhs.size(); ++i)
 		res[i] = lhs[i] / rhs;
 	return res;
@@ -261,6 +294,8 @@ template<typename T>
 NGector<T> operator/(T lhs, const NGector<T>& rhs)
 {
 	NGector<T> res(vector<T>(rhs.size(), 0));
+	
+	//#pragma omp parallel for
 	for (auto i = 0; i < rhs.size(); ++i)
 		res[i] = lhs / rhs[i];
 	return res;

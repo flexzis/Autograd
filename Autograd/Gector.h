@@ -4,9 +4,11 @@
 #include <cassert>
 #include <memory>
 #include <initializer_list>
-#include "Operation.h"
-#include "NGector.h"
-#include "GradFunc.h"
+#include <omp.h>
+#include "operation.h"
+#include "ngector.h"
+#include "grad_func.h"
+
 
 using std::pair;
 using std::vector;
@@ -68,7 +70,7 @@ public:
 	friend Gector<T>& operator/ <>(Gector<T>&, Gector<T>&);
 	friend Gector<T>& operator- <>(Gector<T>&);
 
-	Gector& operator=(const Gector<T>& other)
+	Gector<T>& operator=(const Gector<T>& other)
 	{
 		data = other.data;
 		requires_grad = other.requires_grad;
@@ -76,7 +78,7 @@ public:
 		return *this;
 	}
 
-	Gector& operator=(Gector<T>&& other) noexcept
+	Gector<T>& operator=(Gector<T>&& other) noexcept
 	{
 		data = std::move(other.data);
 		requires_grad = other.requires_grad;
@@ -140,6 +142,66 @@ public:
 					depends_on->get_parent().backward(par_lhs_grad);
 				}
 				if (depends_on->get_other_parent().requires_grad)
+				{
+					Gector<T> other_partial_deriv = depends_on->get_other_partial_deriv();
+					Gector<T> par_rhs_grad(grad->data * other_partial_deriv.data);
+					depends_on->get_other_parent().backward(par_rhs_grad);
+				}
+			}
+			else
+			{
+				if (depends_on->get_parent().requires_grad)
+				{
+					auto partial_deriv = depends_on->get_partial_deriv();
+					Gector<T> par_grad(grad->data * partial_deriv.data);
+					depends_on->get_parent().backward(par_grad);
+				}
+			}
+		}
+	}
+
+	void pbackward(const Gector<T>& in_grad = { 1. })
+	{
+		assert(requires_grad);
+
+		if (!grad)
+			grad.reset(new Gector<T>(in_grad.size(), T{}));
+
+		for (auto i = 0; i < in_grad.size(); ++i)
+			(*grad)[i] += in_grad[i];
+
+		if (depends_on)
+		{
+			if (depends_on->is_binary())
+			{
+				if (depends_on->get_parent().requires_grad && depends_on->get_other_parent().requires_grad)
+				{
+					#pragma omp parallel
+					{
+						#pragma omp sections
+						{
+							#pragma omp section
+							{
+								Gector<T> partial_deriv = depends_on->get_partial_deriv();
+								Gector<T> par_lhs_grad = grad->data * partial_deriv.data;
+								depends_on->get_parent().backward(par_lhs_grad);
+							}
+							#pragma omp section
+							{
+								Gector<T> other_partial_deriv = depends_on->get_other_partial_deriv();
+								Gector<T> par_rhs_grad = grad->data * other_partial_deriv.data;
+								depends_on->get_other_parent().backward(par_rhs_grad);
+							}
+						}
+					}
+				}
+				else if (depends_on->get_parent().requires_grad)
+				{
+					Gector<T> partial_deriv = depends_on->get_partial_deriv();
+					Gector<T> par_lhs_grad(grad->data * partial_deriv.data);
+					depends_on->get_parent().backward(par_lhs_grad);
+				}
+				else if (depends_on->get_other_parent().requires_grad)
 				{
 					Gector<T> other_partial_deriv = depends_on->get_other_partial_deriv();
 					Gector<T> par_rhs_grad(grad->data * other_partial_deriv.data);
