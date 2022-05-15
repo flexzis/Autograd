@@ -3,73 +3,161 @@
 #include <iostream>
 #include <cassert>
 #include <memory>
-#include "Dependency.h"
+#include <initializer_list>
 #include "Operation.h"
+#include "NGector.h"
+#include "GradFunc.h"
 
 using std::pair;
 using std::vector;
-using std::unique_ptr;
+using std::shared_ptr;
 
 template <typename T>
-class NGector
+class NGector;
+
+/*
+	Class representing Node.
+*/
+template <typename T>
+class Gector
 {
+	shared_ptr<GradFunc<T>>	depends_on{};
+	shared_ptr<Gector<T>> grad{};
+	vector<shared_ptr<Gector<T>>> temp_nodes{};
 public:
-	vector<T> data;
+	NGector<T> data;
 
-	NGector() = default;
+	bool requires_grad = true;
 
-	NGector(const vector<T>& data)
+	Gector() = default;
+
+	Gector(const NGector<T>& data, bool requires_grad = true )
 		: data{ data }
+		, requires_grad{ requires_grad }
 	{}
 
-	NGector(vector<T>&& data)
-		: data{ data }
+	Gector(const NGector<T>&& data, bool requires_grad = true)
+		: data{ std::move(data) }
+		, requires_grad{ requires_grad }
 	{}
 
-	NGector(std::initializer_list<T> list)
+	Gector(size_t size, const T& fill_val, bool requires_grad = true)
+		: data{ NGector<T>(size, fill_val) }
+		, requires_grad{ requires_grad }
+	{}
+
+	Gector(std::initializer_list<T> list)
 		: data{ list }
 	{}
 
-	NGector(const NGector<T>& other)
-		: data{other.data}
+	Gector(const Gector<T>& other)
+		: data{ other.data }
+		, requires_grad{ other.requires_grad }
+		, depends_on{ other.depends_on }
 	{}
 
-	NGector(NGector<T>&& other) noexcept
+	Gector(Gector<T>&& other) noexcept
 		: data{ std::move(other.data) }
+		, requires_grad{ other.requires_grad }
+		, depends_on{ std::move(other.depends_on) }
 	{}
 
-	NGector(size_t size, const T& fill_val)
-		: data{ vector<T>(size, fill_val) }
-	{}
+	friend Gector<T>& operator+ <>(Gector<T>&, Gector<T>&);
+	friend Gector<T>& operator- <>(Gector<T>&, Gector<T>&);
+	friend Gector<T>& operator* <>(Gector<T>&, Gector<T>&);
+	friend Gector<T>& operator/ <>(Gector<T>&, Gector<T>&);
+	friend Gector<T>& operator- <>(Gector<T>&);
 
-	NGector& operator=(NGector& other)
+	Gector& operator=(const Gector<T>& other)
 	{
 		data = other.data;
+		requires_grad = other.requires_grad;
+		depends_on = other.depends_on;
+		return *this;
 	}
 
-	NGector& operator=(NGector&& other)
+	Gector& operator=(Gector<T>&& other) noexcept
 	{
-		data = other.data;
+		data = std::move(other.data);
+		requires_grad = other.requires_grad;
+		depends_on = std::move(other.depends_on);
+		return *this;
 	}
 
-	const vector<T>& get_data() const
+	bool operator==(const Gector<T>& other) const
 	{
-		return data;
+		auto size = this->size();
+		if (size != other.size())
+			return false;
+		for (auto i = 0; i < size; ++i)
+		{
+			if (data[i] != other.data[i])
+				return false;
+		}
+		return true;
 	}
 
-	T& operator [] (size_t i)
+	void add_dependency(GradFunc<T>* dep)
 	{
-		return data[i];
+		depends_on.reset(dep);
 	}
 
-	const T& operator [] (size_t i) const
+	Gector<T>& get_grad()
 	{
-		return data[i];
+		return *grad;
+	}
+
+	Gector<T>& sum()
+	{
+		auto new_node = Gsum(*this);
+		temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
+		return *temp_nodes.back();
 	}
 
 	void resize(size_t new_size)
 	{
 		data.resize(new_size);
+	}
+
+	void backward(const Gector<T>& in_grad = { 1. })
+	{
+		assert(requires_grad);
+
+		if (!grad)
+			grad.reset(new Gector<T>(in_grad.size(), T{}));
+
+		std::cout << grad->size() << "  " << in_grad.size() << "\n";
+		for (auto i = 0; i < in_grad.size(); ++i)
+			(*grad)[i] += in_grad[i];
+
+		if (depends_on)
+		{
+			if (depends_on->is_binary())
+			{
+				if (depends_on->get_parent().requires_grad)
+				{
+					Gector<T> partial_deriv = depends_on->get_partial_deriv();
+					Gector<T> par_lhs_grad(grad->data * partial_deriv.data);
+					depends_on->get_parent().backward(par_lhs_grad);
+				}
+				if (depends_on->get_other_parent().requires_grad)
+				{
+					Gector<T> other_partial_deriv = depends_on->get_other_partial_deriv();
+					Gector<T> par_rhs_grad(grad->data * other_partial_deriv.data);
+					depends_on->get_other_parent().backward(par_rhs_grad);
+				}
+			}
+			else
+			{
+				// x = A @ w + w0, data = NGector<Ngector>
+				if (depends_on->get_parent().requires_grad)
+				{
+					auto partial_deriv = depends_on->get_partial_deriv();
+					Gector<T> par_grad(grad->data * partial_deriv.data);
+					depends_on->get_parent().backward(par_grad);
+				}
+			}
+		}
 	}
 
 	auto size() const
@@ -96,140 +184,58 @@ public:
 	{
 		return data.end();
 	}
+
+	T& operator [] (size_t i)
+	{
+		return data[i];
+	}
+
+	const T& operator [] (size_t i) const
+	{
+		return data[i];
+	}
 };
 
-template <typename T>
-class Gector : public NGector<T>
+template<typename T>
+Gector<T>& operator+(Gector<T>& lhs, Gector<T>& rhs)
 {
-	vector<unique_ptr<GradFunc<T>>> depends_on {};
-	NGector<T> grad{};
-public:
-	
-	bool requires_grad = true;
+	auto new_node = Gadd(lhs, rhs);
+	lhs.temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
+	return *lhs.temp_nodes.back();
+}
 
-	Gector() = default;
+template<typename T>
+Gector<T>& operator-(Gector<T>& lhs, Gector<T>& rhs)
+{
+	auto neg = Gneg(rhs);
+	auto new_node = Gadd(lhs, neg);
+	lhs.temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
+	return *lhs.temp_nodes.back();
+}
 
-	Gector(
-		const vector<T>& data,
-		bool requires_grad = true
-	)
-		: NGector<T>{ data }
-		, requires_grad{ requires_grad }
-	{}
+template<typename T>
+Gector<T>& operator*(Gector<T>& lhs, Gector<T>& rhs)
+{
+	auto new_node = Gmul(lhs, rhs);
+	lhs.temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
+	return *lhs.temp_nodes.back();
+}
 
-	Gector(
-		const vector<T>&& data,
-		bool requires_grad = true
-	)
-			: NGector<T>{ data }
-			, requires_grad{ requires_grad }
-	{}
+template<typename T>
+Gector<T>& operator/(Gector<T>& lhs, Gector<T>& rhs)
+{
+	auto new_node = Gdiv(lhs, rhs);
+	lhs.temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
+	return *lhs.temp_nodes.back();
+}
 
-	Gector(std::initializer_list<T> list)
-		: NGector<T>{list}
-	{}
-
-	Gector(const Gector<T>& other)
-		: NGector<T>{ other.data }
-		, requires_grad{ other.requires_grad }
-	{}
-
-	Gector(Gector<T>&& other) noexcept
-		: NGector<T>{ std::move(other.data) }
-		, requires_grad{ other.requires_grad }
-		, depends_on { std::move(other.depends_on) }
-	{}
-
-	Gector(const NGector<T>& other)
-		: NGector<T>{ other.data }
-	{}
-
-	Gector(NGector<T>&& other)
-		: NGector<T>{ std::move(other.data) }
-	{}
-
-	Gector& operator=(const Gector<T>& other)
-	{
-		this->data = other.data;
-		requires_grad = other.requires_grad;
-		return *this;
-	}
-
-	Gector& operator=(Gector<T>&& other) noexcept
-	{
-		this->data = std::move(other.data);
-		requires_grad = other.requires_grad;
-		depends_on = std::move(other.depends_on);
-		return *this;
-	}
-
-	bool operator==(const Gector<T>& other) const
-	{
-		auto size = this->size();
-		if (size != other.size())
-			return false;
-		for (auto i = 0; i < size; ++i)
-		{
-			if ((*this)[i] != other[i])
-				return false;
-		}
-		return true;
-	}
-
-	void add_dependency(GradFunc<T>* dep)
-	{
-		depends_on.emplace_back(dep);
-	}
-
-	Gector<T> get_grad()
-	{
-		return grad;
-	}
-
-	Gector<T> sum()
-	{
-		return Gsum(*this);
-	}
-
-	Gector<T> add(Gector<T>& other)
-	{
-		// maybe implement for different sizes
-		return Gadd(*this, other);
-	}
-
-	Gector<T> mul(Gector<T>& other)
-	{
-		return Gmul(*this, other);
-	}
-	
-	Gector<T> operator-()
-	{
-		return Gneg(*this);
-	}
-
-	Gector<T> operator-(Gector<T>& other)
-	{
-		auto neg_other = -other;
-		return add(neg_other);
-	}
-
-	void backward(const NGector<T>& in_grad = {1.})
-	{
-		assert(requires_grad);
-
-		if (!grad.size())
-			grad.resize(in_grad.size());
-
-		for (auto i = 0; i < in_grad.size(); ++i)
-			grad[i] += in_grad[i];
-
-		for (auto i = 0; i < depends_on.size(); ++i)
-		{	
-			auto backward_grad = (*depends_on[i])(grad);
-			depends_on[i]->parent.backward(backward_grad);
-		}
-	}
-};
+template<typename T>
+Gector<T>& operator-(Gector<T>& operand)
+{
+	auto new_node = Gneg(operand);
+	operand.temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
+	return *operand.temp_nodes.back();
+}
 
 template<typename T>
 std::ostream& operator <<(std::ostream& os, const Gector<T>& t)

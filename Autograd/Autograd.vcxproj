@@ -142,7 +142,6 @@
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Dependency.h" />
     <ClInclude Include="GradFunc.h" />
     <ClInclude Include="Operation.h" />
     <ClInclude Include="Gector.h" />

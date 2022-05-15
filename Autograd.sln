@@ -5,6 +5,11 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Autograd", "Autograd\Autograd.vcxproj", "{E1C860EB-A023-4209-A657-2A3122245B60}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{23D0F623-601B-4E1E-ADB3-892B78E152D4}"
+	ProjectSection(SolutionItems) = preProject
+		Autograd\matplotlib_cppConfig.cmake.in = Autograd\matplotlib_cppConfig.cmake.in
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
