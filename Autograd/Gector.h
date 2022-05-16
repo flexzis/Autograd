@@ -154,8 +154,6 @@ public:
 		return Gector<T>(size, 1);
 	}
 
-
-
 	void backward(const Gector<T>& in_grad = { 1. })
 	{
 		assert(requires_grad);
@@ -203,7 +201,7 @@ public:
 		assert(requires_grad);
 
 		if (!in_grad.size())
-			in_grad = Gones(data.size());
+			in_grad = ones(data.size());
 
 		if (!grad)
 			grad.reset(new Gector<T>(in_grad.size(), T{}));
