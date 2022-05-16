@@ -120,6 +120,7 @@ public:
 	void zero_grad()
 	{
 		grad = std::make_shared<Gector<T>>(zeros(data.size()));
+		depends_on.reset();
 	}
 
 	void add_dependency(GradFunc<T>* dep)
@@ -203,7 +204,7 @@ public:
 		assert(requires_grad);
 
 		if (!in_grad.size())
-			in_grad = Gones(data.size());
+			in_grad = ones(data.size());
 
 		if (!grad)
 			grad.reset(new Gector<T>(in_grad.size(), T{}));
@@ -301,8 +302,6 @@ public:
 template<typename T>
 Gector<T>& operator+(Gector<T>& lhs, Gector<T>& rhs)
 {
-	lhs.zero_grad();
-	rhs.zero_grad();
 	return lhs.store_node(Gadd(lhs, rhs));
 }
 
@@ -323,7 +322,8 @@ Gector<T>& operator+(const T& lhs, Gector<T>& rhs)
 template<typename T>
 Gector<T>& operator-(Gector<T>& lhs, Gector<T>& rhs)
 {
-	Gector<T>& neg = Gneg(rhs);
+	Gector<T> neg = Gneg(rhs);
+	lhs.store_node(neg);
 	return lhs.store_node(Gadd(lhs, neg));
 }
 

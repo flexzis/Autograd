@@ -141,6 +141,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    
     <ClCompile Include="main.cpp" />
     <ClCompile Include="tests.cpp" />
   </ItemGroup>
@@ -149,8 +150,7 @@
     <ClInclude Include="NGector.h" />
     <ClInclude Include="Operation.h" />
     <ClInclude Include="Gector.h" />
-    <ClInclude Include="Shape.h" />
-    <ClInclude Include="Tests.h" />
+    <ClInclude Include="func_minimize.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

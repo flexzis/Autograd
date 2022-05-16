@@ -362,7 +362,6 @@ NGector<T> abs(const NGector<T>& v)
 	return res;
 }
 
-
 template<typename T>
 std::ostream& operator <<(std::ostream& os, const NGector<T>& t)
 {

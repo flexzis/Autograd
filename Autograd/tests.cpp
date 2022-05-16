@@ -8,6 +8,8 @@
 #include <functional>
 #include "Gector.h"
 #include "Operation.h"
+#include "func_minimize.cpp"
+
 
 using std::vector;
 using std::cin;
@@ -18,12 +20,9 @@ bool are_close(const Gector<Real>& v1, const Gector<Real>& v2, Real eps = 1e-4)
 {
 	assert(v1.size() == v2.size());
 	auto diff = abs(v1.data - v2.data);
-	std::cout << diff;
 	for (auto i = 0; i < diff.size(); ++i)
-	{
 		if (diff[i] >= eps)
 			return false;
-	}
 	return true;
 }
 
@@ -178,27 +177,24 @@ void test_complex()
 	std::cout << "Test complex passed!" << std::endl;
 }
 
-void minimize()
+template<class Real>
+void minimize(bool verbose = false)
 {
-	//Gector<double> x_{ 2., -2.};
-	//
-	//for (auto i = 0; i < 100; ++i)
-	//{
-	//	Gector<double> x = x_;
-	//	std::cout << "x = " << x.data;
-	//	auto square = x * x;
-	//	std::cout << "x ** 2 = " << square.data;
-	//	auto sum_of_squares = square.sum();
-	//	std::cout << "sum(x**2) = " << sum_of_squares.data;
-	//	sum_of_squares.backward();
-	//	std::cout << "grad(x**2) = " << x.get_grad();
-	//	auto alpha = 0.1;
-	//	auto delta_x = Gector<double>(x.get_grad(), false) * alpha;
-	//	Gector<double> y = x - delta_x;
-	//	x = y;
-	//	x_.data = x.data;
-	//	std::cout << i  << ": "  << y.data << "\n\n";
-	//}
+	Gector<Real> x{ 2., -2.};
+	
+	for (auto i = 0; i < 100; ++i)
+	{
+		auto sum_of_squares = (x * x).sum();
+		sum_of_squares.backward();
+		Real alpha{ 0.1 };
+		x = x - alpha * x.get_grad();
+		if (verbose)
+			std::cout << i  << ": "  << x << "\n\n";
+		x.zero_grad();
+	}
+	Gector<Real> ans(x.size(), 0.);	
+	assert(are_close(x, ans, 1e-3));
+	std::cout << "minimize test passed!" << "\n";
 }
 
 template<typename Real>
@@ -208,9 +204,9 @@ void test_all()
 	test_add<Real>();
 	test_mul<Real>();
 	test_math_funcs<Real>();
-	//test_complex<Real>();
+	test_complex<Real>();
 
-	//minimize();
+	minimize<Real>();
 }
 
 #include <chrono>
@@ -222,8 +218,10 @@ void run_timed_test()
 	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
 }
 
-
 int main()
 {
-	run_timed_test();
+	//run_timed_test();
+	minimize_f(30);
+
+
 }
