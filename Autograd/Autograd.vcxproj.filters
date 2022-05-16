@@ -21,9 +21,6 @@
     <ClCompile Include="tests.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="func_minimize.cpp">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Gector.h">
@@ -35,14 +32,11 @@
     <ClInclude Include="GradFunc.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="Shape.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
-    <ClInclude Include="Tests.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
     <ClInclude Include="NGector.h">
       <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="func_minimize.cpp">
+      <Filter>Исходные файлы</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

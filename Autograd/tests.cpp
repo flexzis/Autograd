@@ -208,24 +208,36 @@ void test_all(NGector<Real>& v1, NGector<Real>& v2, NGector<Real>& ones)
 	minimize<Real>();
 }
 
+ 
 
 template<typename Real>
 void run_timed_test()
 {
+	
 	size_t size = 1000000;
 	NGector<Real> v1 = get_filled_random_vector(size);
 	NGector<Real> v2 = get_filled_random_vector(size);
 	NGector<Real> ones = std::vector<Real>(size, 1.);
-	auto start = std::chrono::high_resolution_clock::now();
-	test_all<double>(v1, v2, ones);
-	auto end = std::chrono::high_resolution_clock::now();
-	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
+	omp_set_num_threads(1);
+	{
+		auto start = std::chrono::high_resolution_clock::now();
+		test_complex<double>(v1, v2, ones);
+		auto end = std::chrono::high_resolution_clock::now();
+		std::cout << "Sequential: ";
+		std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
+	}
+	omp_set_num_threads(8);
+	{
+		auto start = std::chrono::high_resolution_clock::now();
+		test_complex<double>(v1, v2, ones);
+		auto end = std::chrono::high_resolution_clock::now();
+		std::cout << "Parallel: ";
+		std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
+	}
 }
 
 int main()
 {
-	//run_timed_test();
-	minimize_f(30);
-
-
+	//run_timed_test<double>();
+	minimize_f();
 }

@@ -79,6 +79,7 @@ public:
 	friend Gector<T>& operator- <>(Gector<T>&, Gector<T>&);
 	friend Gector<T>& operator- <>(const T&, Gector<T>&);
 	friend Gector<T>& operator- <>(Gector<T>&, const T&);
+	friend Gector<T>& operator- <>(Gector<T>&);
 
 	friend Gector<T>& operator* <>(Gector<T>&, Gector<T>&);
 	friend Gector<T>& operator* <>(const T&, Gector<T>&);
@@ -315,6 +316,12 @@ Gector<T>& operator+(const T& lhs, Gector<T>& rhs)
 {
 	Gector<T>& lhs_vectorized = lhs.store_node(Gector<T>(rhs.size(), lhs));
 	return lhs_vectorized + rhs;
+}
+
+template<typename T>
+Gector<T>& operator-(Gector<T>& v)
+{
+	return v.store_node(Gneg(v));
 }
 
 template<typename T>
