@@ -115,6 +115,64 @@ public:
 	}
 };
 
+template<typename T>
+class GradSin : public UnaryGradFunc<T>
+{
+public:
+	using UnaryGradFunc<T>::UnaryGradFunc;
+	Gector<T> get_partial_deriv() const override
+	{
+		return Gector<T>(cos(this->parent.data));
+	}
+};
+
+template<typename T>
+class GradCos : public UnaryGradFunc<T>
+{
+public:
+	using UnaryGradFunc<T>::UnaryGradFunc;
+	Gector<T> get_partial_deriv() const override
+	{
+		return Gector<T>(-sin(this->parent.data));
+	}
+};
+
+template<typename T>
+class GradTan : public UnaryGradFunc<T>
+{
+public:
+	using UnaryGradFunc<T>::UnaryGradFunc;
+	Gector<T> get_partial_deriv() const override
+	{
+		auto cos_x = cos(this->parent.data);
+		T one{ 1 };
+		return Gector<T>(one / (cos_x * cos_x));
+	}
+};
+
+template<typename T>
+class GradExp : public UnaryGradFunc<T>
+{
+public:
+	using UnaryGradFunc<T>::UnaryGradFunc;
+	Gector<T> get_partial_deriv() const override
+	{
+		return Gector<T>(exp(this->parent.data));
+	}
+};
+
+template<typename T>
+class GradLog : public UnaryGradFunc<T>
+{
+public:
+	using UnaryGradFunc<T>::UnaryGradFunc;
+	Gector<T> get_partial_deriv() const override
+	{
+		T one{ 1 };
+		return Gector<T>(one / this->parent.data);
+	}
+};
+
 
 template<typename T>
 class GradAdd : public BinaryGradFunc<T>

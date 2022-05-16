@@ -3,6 +3,7 @@
 #include <iostream>
 #include "GradFunc.h"
 
+
 /*
 	For Unary GFunctions:
 		Input: v
@@ -61,6 +62,7 @@ template<typename T>
 	return res;
 }
 
+
  template<typename T>
  Gector<T> Gdiv(Gector<T>& v1, Gector<T>& v2)
  {
@@ -83,5 +85,51 @@ template<typename T>
 	 if (v.requires_grad)
 		 res.add_dependency(new GradNeg<T>(v));
 
+	 return res;
+ }
+
+
+ template<typename T>
+ Gector<T> Gsin(Gector<T>& v)
+ {
+	 Gector<T> res(sin(v.data), v.requires_grad);
+	 if (v.requires_grad)
+		 res.add_dependency(new GradSin<T>(v));
+	 return res;
+ }
+
+ template<typename T>
+ Gector<T> Gcos(Gector<T>& v)
+ {
+	 Gector<T> res(cos(v.data), v.requires_grad);
+	 if (v.requires_grad)
+		 res.add_dependency(new GradSin<T>(v));
+	 return res;
+ }
+
+ template<typename T>
+ Gector<T> Gtan(Gector<T>& v)
+ {
+	 Gector<T> res(tan(v.data), v.requires_grad);
+	 if (v.requires_grad)
+		 res.add_dependency(new GradTan<T>(v));
+	 return res;
+ }
+
+ template<typename T>
+ Gector<T> Gexp(Gector<T>& v)
+ {
+	 Gector<T> res(exp(v.data), v.requires_grad);
+	 if (v.requires_grad)
+		 res.add_dependency(new GradExp<T>(v));
+	 return res;
+ }
+
+ template<typename T>
+ Gector<T> Glog(Gector<T>& v)
+ {
+	 Gector<T> res(log(v.data), v.requires_grad);
+	 if (v.requires_grad)
+		 res.add_dependency(new GradLog<T>(v));
 	 return res;
  }

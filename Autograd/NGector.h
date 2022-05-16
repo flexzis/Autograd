@@ -2,6 +2,7 @@
 #include <vector>
 #include <cassert>
 #include <memory>
+#include <cmath>
 
 using std::vector;
 
@@ -147,7 +148,7 @@ NGector<T> operator+(const NGector<T>& lhs, const NGector<T>& rhs)
 		return lhs + rhs[0];
 	NGector<T> res(vector<T>(lhs.size(), 0));
 
-	#pragma omp for
+	#pragma omp parallel for
 	for (auto i = 0; i < lhs.size(); ++i)
 		res[i] = lhs[i] + rhs[i];
 	return res;
@@ -262,7 +263,7 @@ NGector<T> operator*(const NGector<T>& lhs, T rhs)
 {
 	NGector<T> res(vector<T>(lhs.size(), 0));
 	
-	#pragma omp for
+	#pragma omp parallel for
 	for (auto i = 0; i < lhs.size(); ++i)
 		res[i] = lhs[i] * rhs;
 	return res;
@@ -273,7 +274,7 @@ NGector<T> operator*(T lhs, const NGector<T>& rhs)
 {
 	NGector<T> res(vector<T>(rhs.size(), 0));
 	
-	#pragma omp for
+	#pragma omp parallel for
 	for (auto i = 0; i < rhs.size(); ++i)
 		res[i] = lhs * rhs[i];
 	return res;
@@ -300,6 +301,67 @@ NGector<T> operator/(T lhs, const NGector<T>& rhs)
 		res[i] = lhs / rhs[i];
 	return res;
 }
+
+template<typename T>
+NGector<T> sin(const NGector<T>& v)
+{
+	NGector<T> res(vector<T>(v.size(), 0));
+	//#pragma omp parallel for
+	for (auto i = 0; i < v.size(); ++i)
+		res[i] = std::sin(v[i]);
+	return res;
+}
+
+template<typename T>
+NGector<T> cos(const NGector<T>& v)
+{
+	NGector<T> res(vector<T>(v.size(), 0));
+	//#pragma omp parallel for
+	for (auto i = 0; i < v.size(); ++i)
+		res[i] = std::cos(v[i]);
+	return res;
+}
+
+template<typename T>
+NGector<T> tan(const NGector<T>& v)
+{
+	NGector<T> res(vector<T>(v.size(), 0));
+	//#pragma omp parallel for
+	for (auto i = 0; i < v.size(); ++i)
+		res[i] = std::tan(v[i]);
+	return res;
+}
+
+template<typename T>
+NGector<T> exp(const NGector<T>& v)
+{
+	NGector<T> res(vector<T>(v.size(), 0));
+	//#pragma omp parallel for
+	for (auto i = 0; i < v.size(); ++i)
+		res[i] = std::exp(v[i]);
+	return res;
+}
+
+template<typename T>
+NGector<T> log(const NGector<T>& v)
+{
+	NGector<T> res(vector<T>(v.size(), 0));
+	//#pragma omp parallel for
+	for (auto i = 0; i < v.size(); ++i)
+		res[i] = std::log(v[i]);
+	return res;
+}
+
+template<typename T>
+NGector<T> abs(const NGector<T>& v)
+{
+	NGector<T> res(vector<T>(v.size(), 0));
+	//#pragma omp parallel for
+	for (auto i = 0; i < v.size(); ++i)
+		res[i] = std::abs(v[i]);
+	return res;
+}
+
 
 template<typename T>
 std::ostream& operator <<(std::ostream& os, const NGector<T>& t)

@@ -24,9 +24,15 @@ template <typename T>
 class Gector
 {
 	shared_ptr<GradFunc<T>>	depends_on{};
-	shared_ptr<Gector<T>> grad{};
-	vector<shared_ptr<Gector<T>>> temp_nodes{};
+
 public:
+	Gector<T>& store_node(const Gector<T>& node)
+	{
+		temp_nodes.push_back(std::make_shared<Gector<T>>(node));
+		return *temp_nodes.back();
+	}
+	vector<shared_ptr<Gector<T>>> temp_nodes{};
+	shared_ptr<Gector<T>> grad{};
 	NGector<T> data;
 
 	bool requires_grad = true;
@@ -56,19 +62,31 @@ public:
 		: data{ other.data }
 		, requires_grad{ other.requires_grad }
 		, depends_on{ other.depends_on }
+		, grad{other.grad}
 	{}
 
 	Gector(Gector<T>&& other) noexcept
 		: data{ std::move(other.data) }
 		, requires_grad{ other.requires_grad }
 		, depends_on{ std::move(other.depends_on) }
+		, grad{std::move(other.grad)}
 	{}
 
 	friend Gector<T>& operator+ <>(Gector<T>&, Gector<T>&);
+	friend Gector<T>& operator+ <>(const T&, Gector<T>&);
+	friend Gector<T>& operator+ <>(Gector<T>&, const T&);
+
 	friend Gector<T>& operator- <>(Gector<T>&, Gector<T>&);
+	friend Gector<T>& operator- <>(const T&, Gector<T>&);
+	friend Gector<T>& operator- <>(Gector<T>&, const T&);
+
 	friend Gector<T>& operator* <>(Gector<T>&, Gector<T>&);
+	friend Gector<T>& operator* <>(const T&, Gector<T>&);
+	friend Gector<T>& operator* <>(Gector<T>&, const T&);
+
 	friend Gector<T>& operator/ <>(Gector<T>&, Gector<T>&);
-	friend Gector<T>& operator- <>(Gector<T>&);
+	friend Gector<T>& operator/ <>(const T&, Gector<T>&);
+	friend Gector<T>& operator/ <>(Gector<T>&, const T&);
 
 	Gector<T>& operator=(const Gector<T>& other)
 	{
@@ -99,6 +117,11 @@ public:
 		return true;
 	}
 
+	void zero_grad()
+	{
+		grad = std::make_shared<Gector<T>>(zeros(data.size()));
+	}
+
 	void add_dependency(GradFunc<T>* dep)
 	{
 		depends_on.reset(dep);
@@ -121,12 +144,25 @@ public:
 		data.resize(new_size);
 	}
 
+	Gector<T> zeros(size_t size) const
+	{
+		return Gector<T>(size, 0);
+	}
+
+	Gector<T> ones(size_t size) const
+	{
+		return Gector<T>(size, 1);
+	}
+
+
+
 	void backward(const Gector<T>& in_grad = { 1. })
 	{
 		assert(requires_grad);
-
 		if (!grad)
-			grad.reset(new Gector<T>(in_grad.size(), T{}));
+		{
+			grad = std::make_shared<Gector<T>>(zeros(in_grad.size()));
+		}
 
 		//std::cout << grad->size() << "  " << in_grad.size() << "\n";
 		for (auto i = 0; i < in_grad.size(); ++i)
@@ -162,9 +198,12 @@ public:
 		}
 	}
 
-	void pbackward(const Gector<T>& in_grad = { 1. })
+	void pbackward(const Gector<T>& in_grad = {})
 	{
 		assert(requires_grad);
+
+		if (!in_grad.size())
+			in_grad = Gones(data.size());
 
 		if (!grad)
 			grad.reset(new Gector<T>(in_grad.size(), T{}));
@@ -258,45 +297,118 @@ public:
 	}
 };
 
+
 template<typename T>
 Gector<T>& operator+(Gector<T>& lhs, Gector<T>& rhs)
 {
-	auto new_node = Gadd(lhs, rhs);
-	lhs.temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
-	return *lhs.temp_nodes.back();
+	lhs.zero_grad();
+	rhs.zero_grad();
+	return lhs.store_node(Gadd(lhs, rhs));
+}
+
+template<typename T>
+Gector<T>& operator+(Gector<T>& lhs, const T& rhs)
+{
+	Gector<T>& rhs_vectorized = lhs.store_node(Gector<T>(lhs.size(), rhs));
+	return lhs + rhs_vectorized;
+}
+
+template<typename T>
+Gector<T>& operator+(const T& lhs, Gector<T>& rhs)
+{
+	Gector<T>& lhs_vectorized = lhs.store_node(Gector<T>(rhs.size(), lhs));
+	return lhs_vectorized + rhs;
 }
 
 template<typename T>
 Gector<T>& operator-(Gector<T>& lhs, Gector<T>& rhs)
 {
-	auto neg = Gneg(rhs);
-	auto new_node = Gadd(lhs, neg);
-	lhs.temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
-	return *lhs.temp_nodes.back();
+	Gector<T>& neg = Gneg(rhs);
+	return lhs.store_node(Gadd(lhs, neg));
+}
+
+template<typename T>
+Gector<T>& operator-(Gector<T>& lhs, const T& rhs)
+{
+	Gector<T>& rhs_vectorized_neg = lhs.store_node(Gector<T>(lhs.size(), -rhs));
+	return lhs + rhs_vectorized_neg;
+}
+
+template<typename T>
+Gector<T>& operator-(const T& lhs, Gector<T>& rhs)
+{
+	Gector<T>& lhs_vectorized = lhs.store_node(Gector<T>(lhs.size(), lhs));
+	return lhs_vectorized - rhs;
 }
 
 template<typename T>
 Gector<T>& operator*(Gector<T>& lhs, Gector<T>& rhs)
 {
-	auto new_node = Gmul(lhs, rhs);
-	lhs.temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
-	return *lhs.temp_nodes.back();
+	return lhs.store_node(Gmul(lhs, rhs));
+}
+
+template<typename T>
+Gector<T>& operator*(Gector<T>& lhs, const T& rhs)
+{
+	Gector<T>& rhs_vectorized = lhs.store_node(Gector<T>(lhs.size(), rhs));
+	return lhs * rhs_vectorized;
+}
+
+template<typename T>
+Gector<T>& operator*(const T& lhs, Gector<T>& rhs)
+{
+	Gector<T>& lhs_vectorized = rhs.store_node(Gector<T>(rhs.size(), lhs));
+	return lhs_vectorized * rhs;
 }
 
 template<typename T>
 Gector<T>& operator/(Gector<T>& lhs, Gector<T>& rhs)
 {
-	auto new_node = Gdiv(lhs, rhs);
-	lhs.temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
-	return *lhs.temp_nodes.back();
+	return lhs.store_node(Gdiv(lhs, rhs));
 }
 
 template<typename T>
-Gector<T>& operator-(Gector<T>& operand)
+Gector<T>& operator/(Gector<T>& lhs, const T& rhs)
 {
-	auto new_node = Gneg(operand);
-	operand.temp_nodes.push_back(std::make_shared<Gector<T>>(new_node));
-	return *operand.temp_nodes.back();
+	Gector<T>& rhs_vectorized = lhs.store_node(Gector<T>(lhs.size(), rhs));
+	return lhs / rhs_vectorized;
+}
+
+template<typename T>
+Gector<T>& operator/(const T& lhs, Gector<T>& rhs)
+{
+	Gector<T>& lhs_vectorized = lhs.store_node(Gector<T>(rhs.size(), lhs));
+	return lhs_vectorized / rhs;
+}
+
+template<typename T>
+Gector<T>& sin(Gector<T>& v)
+{
+	return v.store_node(Gsin(v));
+}
+
+template<typename T>
+Gector<T>& cos(Gector<T>& v)
+{
+	return v.store_node(Gcos(v));
+}
+
+template<typename T>
+Gector<T>& tan(Gector<T>& v)
+{
+	return v.store_node(Gtan(v));
+}
+
+template<typename T>
+Gector<T>& exp(Gector<T>& v)
+{
+	return v.store_node(Gexp(v));
+}
+
+template<typename T>
+Gector<T>& log(Gector<T>& v)
+{
+	return v.store_node(Glog(v));
 }
 
 template<typename T>
