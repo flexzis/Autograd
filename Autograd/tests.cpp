@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <random>
 #include <functional>
+#include <chrono>
 #include "Gector.h"
 #include "Operation.h"
 #include "func_minimize.cpp"
@@ -31,7 +32,7 @@ auto rng()
 	std::random_device rnd_device;
 	// Specify the engine and distribution.
 	std::mt19937 mersenne_engine{ rnd_device() };  // Generates random integers
-	std::uniform_int_distribution<int> dist(1, 2);
+	std::uniform_int_distribution<int> dist(1, 100);
 
 	auto gen = [&dist, &mersenne_engine]() {
 		return double(dist(mersenne_engine));
@@ -52,20 +53,19 @@ std::vector<double> get_filled_random_vector(size_t size)
 }
 
 template<typename Real>
-void test_sum()
+void test_sum(NGector<double>& ones)
 {
-	NGector<Real> ones = std::vector<Real>(10000, 1.);
 	NGector<Real> twos = 2. * ones;
 
 	Gector<Real> g1(twos);
 	auto res1 = g1.sum();
-	assert(res1 == Gector<Real>({ 20000. }));
+	assert(res1 == Gector<Real>({ twos.sum() }));
 	res1.backward();
 	assert(g1.get_grad() == ones);
 
 	Gector<Real> g2(twos);
 	auto res2 = g2.sum();
-	assert(res2 == Gector<Real>({ 20000. }));
+	assert(res2 == Gector<Real>({ twos.sum() }));
 	res2.backward({ 2. });
 	assert(g2.get_grad() == twos);
 
@@ -74,11 +74,8 @@ void test_sum()
 
 
 template<typename Real>
-void test_add()
+void test_add(NGector<Real>& v1, NGector<Real>& v2, NGector<Real>& ones)
 {
-	NGector<Real> v1 = get_filled_random_vector(10000);
-	NGector<Real> v2 = get_filled_random_vector(10000);
-	NGector<Real> ones = std::vector<double>(10000, 1.);
 	NGector<Real> twos = ones + ones;
 	Gector<Real> g1(v1);
 	Gector<Real> g2{v2};
@@ -100,11 +97,8 @@ void test_add()
 
 
 template<typename Real>
-void test_mul()
+void test_mul(NGector<Real>& v1, NGector<Real>& v2, NGector<Real>& ones)
 {
-	NGector<Real> ones = std::vector<double>(10000, 1.);
-	NGector<Real> v1 = get_filled_random_vector(10000);
-	NGector<Real> v2 = get_filled_random_vector(10000);
 	NGector<Real> product = v1 * v2;
 
 	Gector<Real> g1(v1);
@@ -119,60 +113,65 @@ void test_mul()
 }
 
 template<typename Real>
-void test_math_funcs()
+void test_math_funcs(NGector<Real>& v1, NGector<Real>& ones)
 {
 	{
-		Gector<Real> t1{ 10., 20. };
+		Gector<Real> t1(v1);
 		auto t2 = sin(t1);
-		assert(t2 == Gector<Real>({ sin(10.), sin(20.) }));
+		assert(t2 == Gector<Real>(sin(v1)));
 		t2.backward();
-		assert(t1.get_grad() == Gector<Real>({ cos(10.), cos(20.) }));
+		assert(t1.get_grad() == Gector<Real>(cos(v1)));
+
+		std::cout << "Test sin passed!" << std::endl;
 	}
 	{
-		NGector<Real> d{ 10., 20. };
-		Gector<Real> t1{ d };
+		Gector<Real> t1(v1);
 		auto t2 = log(t1);
-		assert(t2 == Gector<Real>(log(d)));
+		assert(t2 == Gector<Real>(log(v1)));
 		t2.backward();
 		Real one{ 1 };
-		assert(t1.get_grad() == Gector<Real>(one / d));
+		assert(t1.get_grad() == Gector<Real>(one / v1));
+
+		std::cout << "Test log passed!" << std::endl;
 	}
 	{
-		NGector<Real> d{ 10., 20. };
-		Gector<Real> t1{ d };
+		NGector<Real> twos = 2. * ones;
+		Gector<Real> t1(twos);
 		auto t2 = log(tan(exp(t1)));
-		assert(t2 == Gector<Real>(log(tan(exp(d)))));
+		assert(t2 == Gector<Real>(log(tan(exp(twos)))));
 		t2.backward();
-		auto e_x = exp(d);
+		auto e_x = exp(twos);
 		auto ans = Gector<Real>(e_x / (cos(e_x) * sin(e_x)));
 		assert(are_close(t1.get_grad(), ans));
-		//assert(t1.get_grad() == );
+
+		std::cout << "Test function of function passed!" << std::endl;
 	}
 }
 
 template<typename Real>
-void test_complex()
+void test_complex(NGector<Real>& v1, NGector<Real>& v2, NGector<Real>& ones)
 {
-	size_t size = 1;
-	NGector<Real> ones = std::vector<double>(size, 1.);
-	NGector<Real> v1 = ones; // get_filled_random_vector(size);
-	NGector<Real> v2 = ones; // get_filled_random_vector(size);
 	Gector<Real> a(v1);
 	Gector<Real> b(v2);
+	Gector<Real> c(ones);
+	Gector<Real> d(v1 + ones);
 
-	auto c = a * b; // ab
-	auto d = c + c; // 2ab
-	// auto e = d + d * d; // 2ab + 4 a^2 b^2
-	std::cout << (*c.temp_nodes[0])[0] << std::endl;
-	d.backward(ones);
-	std::cout << a.get_grad(); // 2
+	auto e = (a + b + c + d) * (a + b + c + d) * (a + b + c + d) + (a * b) + (a + c) * (c * d) + a * a;
 
-	//auto res = (1. + v2 + 2. * (1. + v2) * (v1 + v2 + v1 * v2));
-	//std::cout << res;
-	//assert(e.get_grad() == ones);
+	e.backward();
 
-	//assert(a.get_grad() == res);
-	//assert(b.get_grad() == v1 + 2. * ones);
+	// b + 2 a + c d + 3 (a + b + c + d)^2
+	assert(a.get_grad() == b.data + 2. * a.data + c.data * d.data 
+		+ 3. * (a.data + b.data + c.data + d.data) * (a.data + b.data + c.data + d.data));
+	// a + 3 (a + b + c + d)^2
+	assert(b.get_grad() == a.data 
+		+ 3. * (a.data + b.data + c.data + d.data) * (a.data + b.data + c.data + d.data));
+	// c d + (a + c) d + 3 (a + b + c + d)^2
+	assert(c.get_grad() == c.data * d.data + (a.data + c.data) * d.data 
+		+ 3. * (a.data + b.data + c.data + d.data) * (a.data + b.data + c.data + d.data));
+	// c (a + c) + 3 (a + b + c + d)^2
+	assert(d.get_grad() == c.data * (a.data + c.data) 
+		+ 3. * (a.data + b.data + c.data + d.data) * (a.data + b.data + c.data + d.data));
 
 	std::cout << "Test complex passed!" << std::endl;
 }
@@ -198,22 +197,27 @@ void minimize(bool verbose = false)
 }
 
 template<typename Real>
-void test_all()
+void test_all(NGector<Real>& v1, NGector<Real>& v2, NGector<Real>& ones)
 {
-	test_sum<Real>();
-	test_add<Real>();
-	test_mul<Real>();
-	test_math_funcs<Real>();
-	test_complex<Real>();
+	test_sum<Real>(ones);
+	test_add<Real>(v1, v2, ones);
+	test_mul<Real>(v1, v2, ones);
+	test_math_funcs<Real>(v1, ones);
+	test_complex<Real>(v1, v2, ones);
 
 	minimize<Real>();
 }
 
-#include <chrono>
+
+template<typename Real>
 void run_timed_test()
 {
+	size_t size = 1000000;
+	NGector<Real> v1 = get_filled_random_vector(size);
+	NGector<Real> v2 = get_filled_random_vector(size);
+	NGector<Real> ones = std::vector<Real>(size, 1.);
 	auto start = std::chrono::high_resolution_clock::now();
-	test_all<double>();
+	test_all<double>(v1, v2, ones);
 	auto end = std::chrono::high_resolution_clock::now();
 	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
 }

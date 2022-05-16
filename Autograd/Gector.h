@@ -155,8 +155,6 @@ public:
 		return Gector<T>(size, 1);
 	}
 
-
-
 	void backward(const Gector<T>& in_grad = { 1. })
 	{
 		assert(requires_grad);
