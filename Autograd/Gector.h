@@ -156,12 +156,12 @@ public:
 		return Gector<T>(size, 1);
 	}
 
-	void backward(const Gector<T>& in_grad = { 1. })
+	void backward(const Gector<T>& in_grad = {})
 	{
 		assert(requires_grad);
 		if (!grad)
 		{
-			grad = std::make_shared<Gector<T>>(zeros(in_grad.size()));
+			grad = std::make_shared<Gector<T>>(ones(in_grad.size()));
 		}
 
 		//std::cout << grad->size() << "  " << in_grad.size() << "\n";
@@ -198,12 +198,12 @@ public:
 		}
 	}
 
-	void pbackward(const Gector<T>& in_grad = {})
+	void pbackward(const Gector<T>& in_grad)
 	{
 		assert(requires_grad);
 
 		if (!in_grad.size())
-			in_grad = ones(data.size());
+			//in_grad = std::make_shared<Gector<T>>(ones(data.size()));
 
 		if (!grad)
 			grad.reset(new Gector<T>(in_grad.size(), T{}));

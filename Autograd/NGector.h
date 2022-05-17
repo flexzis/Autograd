@@ -155,6 +155,7 @@ NGector<T> operator+(const NGector<T>&lhs, const NGector<T>&rhs)
 
 	#pragma omp parallel for
 	for (auto i = 0; i < lhs.size(); ++i)
+		#pragma omp critical
 		res[i] = lhs[i] + rhs[i];
 	return res;
 }
@@ -187,6 +188,7 @@ NGector<T> operator*(const NGector<T>&lhs, const NGector<T>&rhs)
 
 	#pragma omp parallel for
 	for (auto i = 0; i < lhs.size(); ++i)
+		#pragma omp critical
 		res[i] = lhs[i] * rhs[i];
 	return res;
 }

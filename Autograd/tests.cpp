@@ -158,7 +158,7 @@ void test_complex(NGector<Real>& v1, NGector<Real>& v2, NGector<Real>& ones)
 
 	auto e = (a + b + c + d) * (a + b + c + d) * (a + b + c + d) + (a * b) + (a + c) * (c * d) + a * a;
 
-	e.backward();
+	e.pbackward(ones);
 
 	// b + 2 a + c d + 3 (a + b + c + d)^2
 	assert(a.get_grad() == b.data + 2. * a.data + c.data * d.data 
@@ -214,7 +214,7 @@ template<typename Real>
 void run_timed_test()
 {
 	
-	size_t size = 1000000;
+	size_t size = 10;
 	NGector<Real> v1 = get_filled_random_vector(size);
 	NGector<Real> v2 = get_filled_random_vector(size);
 	NGector<Real> ones = std::vector<Real>(size, 1.);
@@ -238,6 +238,6 @@ void run_timed_test()
 
 int main()
 {
-	//run_timed_test<double>();
-	minimize_f();
+	run_timed_test<double>();
+	//minimize_f();
 }
