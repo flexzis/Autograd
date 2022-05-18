@@ -25,7 +25,6 @@ void minimize_f(size_t iters = 10000)
 		f_x.backward({ 1. });
 		x = x - alpha * x.get_grad();
 		y = y - alpha * y.get_grad();
-			// std::cout << x;
 		x1_history.push_back(x[0]);
 		x2_history.push_back(y[0]);
 		x.zero_grad();
