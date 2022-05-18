@@ -2,6 +2,7 @@
 #include <vector>
 #include <cassert>
 #include <memory>
+#include <ostream>
 #include <cmath>
 #ifdef _OPENMP
 #include <omp.h>
@@ -78,8 +79,9 @@ public:
 	NGector<T> sum()
 	{
 		T sum{};
-		for (auto& el : data)
-			sum += el;
+		//#pragma omp parallel for reduction(+ : sum)
+		for (int i = 0; i < data.size(); ++i)
+			sum += data[i];
 		return { sum };
 	}
 
@@ -153,9 +155,9 @@ NGector<T> operator+(const NGector<T>&lhs, const NGector<T>&rhs)
 		return lhs + rhs[0];
 	NGector<T> res(vector<T>(lhs.size(), 0));
 
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static) 
 	for (auto i = 0; i < lhs.size(); ++i)
-		#pragma omp critical
+		//#pragma omp critical
 		res[i] = lhs[i] + rhs[i];
 	return res;
 }
@@ -170,8 +172,9 @@ NGector<T> operator-(const NGector<T>&lhs, const NGector<T>&rhs)
 		return lhs - rhs[0];
 	NGector<T> res(vector<T>(lhs.size(), 0));
 
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static) 
 	for (auto i = 0; i < lhs.size(); ++i)
+		//#pragma omp critical
 		res[i] = lhs[i] - rhs[i];
 	return res;
 }
@@ -186,9 +189,9 @@ NGector<T> operator*(const NGector<T>&lhs, const NGector<T>&rhs)
 		return lhs * rhs[0];
 	NGector<T> res(vector<T>(lhs.size(), 0));
 
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < lhs.size(); ++i)
-		#pragma omp critical
+		//#pragma omp critical
 		res[i] = lhs[i] * rhs[i];
 	return res;
 }
@@ -203,8 +206,9 @@ NGector<T> operator/(const NGector<T>&lhs, const NGector<T>&rhs)
 		return lhs / rhs[0];
 	NGector<T> res(vector<T>(lhs.size(), 0));
 
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < lhs.size(); ++i)
+		//#pragma omp critical
 		res[i] = lhs[i] / rhs[i];
 	return res;
 }
@@ -214,8 +218,9 @@ NGector<T> operator-(const NGector<T>&operand)
 {
 	NGector<T> res(vector<T>(operand.size(), 0));
 
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < operand.size(); ++i)
+		//#pragma omp critical
 		res[i] = -operand[i];
 	return res;
 }
@@ -226,8 +231,9 @@ NGector<T> operator+(const NGector<T>&lhs, T rhs)
 {
 	NGector<T> res(vector<T>(lhs.size(), 0));
 
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < lhs.size(); ++i)
+		//#pragma omp critical
 		res[i] = lhs[i] + rhs;
 	return res;
 }
@@ -237,8 +243,9 @@ NGector<T> operator+(T lhs, const NGector<T>&rhs)
 {
 	NGector<T> res(vector<T>(rhs.size(), 0));
 
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < rhs.size(); ++i)
+		//#pragma omp critical
 		res[i] = lhs + rhs[i];
 	return res;
 }
@@ -248,8 +255,9 @@ NGector<T> operator-(const NGector<T>&lhs, T rhs)
 {
 	NGector<T> res(vector<T>(lhs.size(), 0));
 
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < lhs.size(); ++i)
+		//#pragma omp critical
 		res[i] = lhs[i] - rhs;
 	return res;
 }
@@ -258,8 +266,9 @@ template<typename T>
 NGector<T> operator-(T lhs, const NGector<T>&rhs)
 {
 	NGector<T> res(vector<T>(rhs.size(), 0));
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < rhs.size(); ++i)
+		//#pragma omp critical
 		res[i] = lhs - rhs[i];
 	return res;
 }
@@ -270,8 +279,9 @@ NGector<T> operator*(const NGector<T>&lhs, T rhs)
 {
 	NGector<T> res(vector<T>(lhs.size(), 0));
 
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < lhs.size(); ++i)
+		//#pragma omp critical
 		res[i] = lhs[i] * rhs;
 	return res;
 }
@@ -281,8 +291,9 @@ NGector<T> operator*(T lhs, const NGector<T>&rhs)
 {
 	NGector<T> res(vector<T>(rhs.size(), 0));
 
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < rhs.size(); ++i)
+		//#pragma omp critical
 		res[i] = lhs * rhs[i];
 	return res;
 }
@@ -292,8 +303,9 @@ NGector<T> operator/(const NGector<T>&lhs, T rhs)
 {
 	NGector<T> res(vector<T>(lhs.size(), 0));
 
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < lhs.size(); ++i)
+		//#pragma omp critical
 		res[i] = lhs[i] / rhs;
 	return res;
 }
@@ -303,8 +315,9 @@ NGector<T> operator/(T lhs, const NGector<T>&rhs)
 {
 	NGector<T> res(vector<T>(rhs.size(), 0));
 
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < rhs.size(); ++i)
+		//#pragma omp critical
 		res[i] = lhs / rhs[i];
 	return res;
 }
@@ -314,8 +327,9 @@ NGector<T> sin(const NGector<T>&v)
 {
 	NGector<T> res(vector<T>(v.size(), 0));
 
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < v.size(); ++i)
+		//#pragma omp critical
 		res[i] = std::sin(v[i]);
 	return res;
 }
@@ -325,8 +339,9 @@ NGector<T> cos(const NGector<T>&v)
 {
 	NGector<T> res(vector<T>(v.size(), 0));
 
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < v.size(); ++i)
+		//#pragma omp critical
 		res[i] = std::cos(v[i]);
 	return res;
 }
@@ -335,8 +350,9 @@ template<typename T>
 NGector<T> tan(const NGector<T>&v)
 {
 	NGector<T> res(vector<T>(v.size(), 0));
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < v.size(); ++i)
+		//#pragma omp critical
 		res[i] = std::tan(v[i]);
 	return res;
 }
@@ -345,8 +361,9 @@ template<typename T>
 NGector<T> exp(const NGector<T>&v)
 {
 	NGector<T> res(vector<T>(v.size(), 0));
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < v.size(); ++i)
+		//#pragma omp critical
 		res[i] = std::exp(v[i]);
 	return res;
 }
@@ -355,8 +372,9 @@ template<typename T>
 NGector<T> log(const NGector<T>&v)
 {
 	NGector<T> res(vector<T>(v.size(), 0));
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < v.size(); ++i)
+		//#pragma omp critical
 		res[i] = std::log(v[i]);
 	return res;
 }
@@ -365,8 +383,9 @@ template<typename T>
 NGector<T> abs(const NGector<T>&v)
 {
 	NGector<T> res(vector<T>(v.size(), 0));
-	#pragma omp parallel for
+	//#pragma omp parallel for schedule(static)
 	for (auto i = 0; i < v.size(); ++i)
+		//#pragma omp critical
 		res[i] = std::abs(v[i]);
 	return res;
 }

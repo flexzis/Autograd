@@ -104,6 +104,7 @@ public:
 	}
 };
 
+
 template<typename T>
 class GradNeg : public UnaryGradFunc<T>
 {
@@ -189,6 +190,23 @@ public:
 		return Gector<T>(this->parent_rhs.size(), 1);
 	}
 };
+
+template<typename T>
+class GradSub : public BinaryGradFunc<T>
+{
+public:
+	using BinaryGradFunc<T>::BinaryGradFunc;
+	Gector<T> get_partial_deriv() const override
+	{
+		return Gector<T>(this->parent_lhs.size(), 1);
+	}
+
+	Gector<T> get_other_partial_deriv() const override
+	{
+		return Gector<T>(this->parent_rhs.size(), -1);
+	}
+};
+
 
 template<typename T>
 class GradMul : public BinaryGradFunc<T>

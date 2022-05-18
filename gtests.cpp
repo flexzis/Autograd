@@ -2,8 +2,8 @@
 #include <vector>
 #include <algorithm>
 #include <random>
-#include <functional>
 #include <chrono>
+#include <functional>
 #include "Gector.h"
 #include "Operation.h"
 #include "gtest/gtest.h"
@@ -26,7 +26,7 @@ auto rng()
 {
 	std::random_device rnd_device;
 	std::mt19937 mersenne_engine{ rnd_device() };
-	std::uniform_int_distribution<int> dist(1, 100);
+	std::uniform_int_distribution<int> dist(1, 2);
 
 	auto gen = [&dist, &mersenne_engine]() {
 		return double(dist(mersenne_engine));
@@ -86,6 +86,7 @@ TEST(GectorOperationsTest, GectorMathFuncs)
 {
 	size_t size = 10;
 	NGector<double> v1 = get_filled_random_vector(size);
+	std::cout << v1;
 	NGector<double> v2 = get_filled_random_vector(size);
 	NGector<double> ones = std::vector<double>(size, 1.);
 	{
@@ -113,6 +114,38 @@ TEST(GectorOperationsTest, GectorMathFuncs)
 		auto ans = Gector<double>(e_x / (cos(e_x) * sin(e_x)));
 		EXPECT_TRUE(are_close(t1.get_grad(), ans));
 	}
+}
+
+TEST(GectorOperationsTest, GectorComplex)
+{
+	size_t size = 10;
+	NGector<double> v1 = get_filled_random_vector(size);
+	std::cout << v1;
+	NGector<double> v2 = get_filled_random_vector(size);
+	NGector<double> ones = std::vector<double>(size, 1.);
+	Gector<double> a(v1);
+	Gector<double> b(v2);
+	Gector<double> c(ones);
+	Gector<double> d(v1 + ones);
+
+	auto e = (a + b + c + d) * (a + b + c + d) * (a + b + c + d) + (a * b) + (a + c) * (c * d) + a * a;
+
+	e.backward(ones);
+
+	// b + 2 a + c d + 3 (a + b + c + d)^2
+	assert(a.get_grad() == b.data + 2. * a.data + c.data * d.data
+		+ 3. * (a.data + b.data + c.data + d.data) * (a.data + b.data + c.data + d.data));
+	// a + 3 (a + b + c + d)^2
+	assert(b.get_grad() == a.data
+		+ 3. * (a.data + b.data + c.data + d.data) * (a.data + b.data + c.data + d.data));
+	// c d + (a + c) d + 3 (a + b + c + d)^2
+	assert(c.get_grad() == c.data * d.data + (a.data + c.data) * d.data
+		+ 3. * (a.data + b.data + c.data + d.data) * (a.data + b.data + c.data + d.data));
+	// c (a + c) + 3 (a + b + c + d)^2
+	assert(d.get_grad() == c.data * (a.data + c.data)
+		+ 3. * (a.data + b.data + c.data + d.data) * (a.data + b.data + c.data + d.data));
+
+	std::cout << "Test complex passed!" << std::endl;
 }
 
 int main(int argc, char** argv) {

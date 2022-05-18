@@ -1,4 +1,4 @@
-﻿cmake_minimum_required (VERSION 3.8)
+﻿cmake_minimum_required (VERSION 3.9)
 
 project(Autograd
 		VERSION 0.2
@@ -6,6 +6,14 @@ project(Autograd
 		LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
+option(CMAKE_USE_WIN32_THREADS_INIT "using WIN32 threads" ON)
+
+include(CTest)
+enable_testing()
+
+find_package(OpenMP REQUIRED)
+add_executable(${PROJECT_NAME} main.cpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
 
 include(FetchContent)
 FetchContent_Declare(

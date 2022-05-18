@@ -22,15 +22,16 @@ void minimize_f(size_t iters = 10000)
 	 	auto ones = Gector<double>(x.size(), 1.);
 		//auto f_x = x * x + log(ones + x * x) + sin(0.1 * x * x) * exp(-0.2 * x);
 		Gector<double> f_x = (x + (-1.))*(x + (-1.)) + 100. * (y + (-x * x)) * (y + (-x * x));
-		f_x.backward(ones);
+		f_x.backward({ 1. });
 		x = x - alpha * x.get_grad();
 		y = y - alpha * y.get_grad();
+			// std::cout << x;
 		x1_history.push_back(x[0]);
 		x2_history.push_back(y[0]);
 		x.zero_grad();
 		y.zero_grad();
-		if (i % 100 == 0)
-			std::cout << "i = " << i << "  " << x[0] << "  " << y[0] << "\n";
+		//if (i % 100 == 0)
+		//	std::cout << "i = " << i << "  " << x[0] << "  " << y[0] << "\n";
 	}
 	save_data_to_file(x1_history, "xs.txt");
 	save_data_to_file(x2_history, "ys.txt");

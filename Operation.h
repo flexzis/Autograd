@@ -20,7 +20,7 @@ class NGector;
 template <typename T>
 class Gector;
 
-template<class T>
+template<typename T>
 Gector<T> Gsum(Gector<T>& v)
 {
 	Gector<T> res(v.data.sum(), v.requires_grad);
@@ -31,6 +31,18 @@ Gector<T> Gsum(Gector<T>& v)
 	return res;
 }
 
+template<typename T>
+Gector<T>& GaddAssign(Gector<T>& v1, Gector<T>& v2)
+{
+	assert(v1.size() == v2.size());
+
+	v1.data = v1.data + v2.data;
+
+	if (v2.requires_grad)
+		v1.add_dependency(new GradSum(v2));
+
+	return v1;
+}
 
 template<typename T>
 Gector<T> Gadd(Gector<T>& v1, Gector<T>& v2)
@@ -43,6 +55,22 @@ Gector<T> Gadd(Gector<T>& v1, Gector<T>& v2)
 
 	if (requires_grad)
 		res.add_dependency(new GradAdd<T>(v1, v2));
+
+	return res;
+}
+
+
+template<typename T>
+Gector<T> Gsub(Gector<T>& v1, Gector<T>& v2)
+{
+	assert(v1.size() == v2.size());
+
+	auto requires_grad = v1.requires_grad || v2.requires_grad;
+
+	Gector<T> res(v1.data - v2.data, requires_grad);
+
+	if (requires_grad)
+		res.add_dependency(new GradSub<T>(v1, v2));
 
 	return res;
 }

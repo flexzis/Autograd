@@ -4,6 +4,7 @@
 #include <cassert>
 #include <memory>
 #include <initializer_list>
+#include <ostream>
 #include <omp.h>
 #include "Operation.h"
 #include "NGector.h"
@@ -24,17 +25,14 @@ template <typename T>
 class Gector
 {
 	shared_ptr<GradFunc<T>>	depends_on{};
-	Gector<T>& store_node(const Gector<T>& node)
-	{
-		temp_nodes.push_back(std::make_shared<Gector<T>>(node));
-		return *temp_nodes.back();
-	}
-	vector<shared_ptr<Gector<T>>> temp_nodes{};
-	shared_ptr<Gector<T>> grad{};
 
 public:
+	vector<shared_ptr<Gector<T>>> temp_nodes{};
+	shared_ptr<Gector<T>> grad{};
 	NGector<T> data;
+
 	bool requires_grad = true;
+
 	Gector() = default;
 
 	Gector(const NGector<T>& data, bool requires_grad = true )
@@ -73,6 +71,7 @@ public:
 	friend Gector<T>& operator+ <>(Gector<T>&, Gector<T>&);
 	friend Gector<T>& operator+ <>(const T&, Gector<T>&);
 	friend Gector<T>& operator+ <>(Gector<T>&, const T&);
+	friend Gector<T>& operator+= <>(Gector<T>&, Gector<T>&);
 
 	friend Gector<T>& operator- <>(Gector<T>&, Gector<T>&);
 	friend Gector<T>& operator- <>(const T&, Gector<T>&);
@@ -92,6 +91,12 @@ public:
 	friend Gector<T>& tan<>(Gector<T>&);
 	friend Gector<T>& log<>(Gector<T>&);
 	friend Gector<T>& exp<>(Gector<T>&);
+
+	Gector<T>& store_node(const Gector<T>& node)
+	{
+		temp_nodes.push_back(std::make_shared<Gector<T>>(node));
+		return *temp_nodes.back();
+	}
 
 	Gector<T>& operator=(const Gector<T>& other)
 	{
@@ -164,7 +169,9 @@ public:
 	{
 		assert(requires_grad);
 		if (!grad)
+		{
 			grad = std::make_shared<Gector<T>>(zeros(in_grad.size()));
+		}
 
 		for (auto i = 0; i < in_grad.size(); ++i)
 			(*grad)[i] += in_grad[i];
@@ -201,9 +208,10 @@ public:
 	void pbackward(const Gector<T>& in_grad)
 	{
 		assert(requires_grad);
-
 		if (!grad)
-			grad.reset(new Gector<T>(in_grad.size(), T{}));
+		{
+			grad = std::make_shared<Gector<T>>(zeros(in_grad.size()));
+		}
 
 		for (auto i = 0; i < in_grad.size(); ++i)
 			(*grad)[i] += in_grad[i];
@@ -212,38 +220,26 @@ public:
 		{
 			if (depends_on->is_binary())
 			{
-				if (depends_on->get_parent().requires_grad && depends_on->get_other_parent().requires_grad)
+				#pragma omp parallel sections num_threads(2)
 				{
-					#pragma omp parallel
+					#pragma omp section 
 					{
-						#pragma omp sections
+						if (depends_on->get_parent().requires_grad)
 						{
-							#pragma omp section
-							{
-								Gector<T> partial_deriv = depends_on->get_partial_deriv();
-								Gector<T> par_lhs_grad = grad->data * partial_deriv.data;
-								depends_on->get_parent().backward(par_lhs_grad);
-							}
-							#pragma omp section
-							{
-								Gector<T> other_partial_deriv = depends_on->get_other_partial_deriv();
-								Gector<T> par_rhs_grad = grad->data * other_partial_deriv.data;
-								depends_on->get_other_parent().backward(par_rhs_grad);
-							}
+							Gector<T> partial_deriv = depends_on->get_partial_deriv();
+							Gector<T> par_lhs_grad(grad->data * partial_deriv.data);
+							depends_on->get_parent().pbackward(par_lhs_grad);
 						}
 					}
-				}
-				else if (depends_on->get_parent().requires_grad)
-				{
-					Gector<T> partial_deriv = depends_on->get_partial_deriv();
-					Gector<T> par_lhs_grad(grad->data * partial_deriv.data);
-					depends_on->get_parent().backward(par_lhs_grad);
-				}
-				else if (depends_on->get_other_parent().requires_grad)
-				{
-					Gector<T> other_partial_deriv = depends_on->get_other_partial_deriv();
-					Gector<T> par_rhs_grad(grad->data * other_partial_deriv.data);
-					depends_on->get_other_parent().backward(par_rhs_grad);
+					#pragma omp section 
+					{
+						if (depends_on->get_other_parent().requires_grad)
+						{
+							Gector<T> other_partial_deriv = depends_on->get_other_partial_deriv();
+							Gector<T> par_rhs_grad(grad->data * other_partial_deriv.data);
+							depends_on->get_other_parent().pbackward(par_rhs_grad);
+						}
+					}
 				}
 			}
 			else
@@ -252,7 +248,7 @@ public:
 				{
 					auto partial_deriv = depends_on->get_partial_deriv();
 					Gector<T> par_grad(grad->data * partial_deriv.data);
-					depends_on->get_parent().backward(par_grad);
+					depends_on->get_parent().pbackward(par_grad);
 				}
 			}
 		}
@@ -316,6 +312,12 @@ Gector<T>& operator+(const T& lhs, Gector<T>& rhs)
 }
 
 template<typename T>
+Gector<T>& operator+=(Gector<T>& lhs, Gector<T>& rhs)
+{
+	return lhs.store_node(GaddAssign(lhs, rhs));
+}
+
+template<typename T>
 Gector<T>& operator-(Gector<T>& v)
 {
 	return v.store_node(Gneg(v));
@@ -324,9 +326,7 @@ Gector<T>& operator-(Gector<T>& v)
 template<typename T>
 Gector<T>& operator-(Gector<T>& lhs, Gector<T>& rhs)
 {
-	Gector<T> neg = Gneg(rhs);
-	lhs.store_node(neg);
-	return lhs.store_node(Gadd(lhs, neg));
+	return lhs.store_node(Gsub(lhs, rhs));
 }
 
 template<typename T>
